@@ -20,6 +20,33 @@ Elle vaut pour les regles annoncees. Une donne gagnable en pioche par 1 ne
 l'est pas forcement en pioche par 3 : un autre mode demanderait son propre
 catalogue.
 
+## Le mode ouvert
+
+Un reglage distribue les memes donnes, mais toutes faces visibles. Le Klondike
+cesse alors d'etre un jeu de chance pour devenir un puzzle : une partie perdue
+l'est par une faute, plus par une carte qu'on ne pouvait pas connaitre.
+
+Le tableau s'ouvre entierement, le talon reste un talon — et c'est complet
+ainsi. En pioche par 1 avec redonnes illimitees, le talon n'est pas de
+l'information cachee : on peut le faire defiler autant qu'on veut avant de
+decider. C'est de l'information qui coute quelques clics, pas un secret. Les
+seules cartes reellement inconnues sont les faces cachees du tableau, et le
+mode ouvert les decouvre toutes.
+
+Le catalogue vaut tel quel, sans nouvelle moisson : le solveur resout
+precisement cette version-la, puisqu'il voit les cartes retournees. Mieux, le
+mode ouvert est strictement plus permissif — une suite enfouie devient
+deplacable des lors qu'elle n'est plus cachee — donc une donne garantie en
+classique l'est a plus forte raison en ouvert.
+
+Les deux modes tiennent leurs statistiques chacun de leur cote. Un temps gagne
+en donne ouverte n'a rien a voir avec un temps gagne en aveugle, et n'a rien a
+faire dans le meme palmares.
+
+Le mode se fige a la donne. Le changer avant le premier coup redistribue la
+meme donne dans l'autre mode ; en cours de partie, il attend la suivante — on
+ne peut pas recacher des cartes qui ont deja bouge.
+
 ## Comment la donne est garantie
 
 Le solveur ne tourne jamais dans le navigateur. Prouver qu'une donne est
@@ -124,7 +151,7 @@ distribue quand meme, en annoncant qu'elle n'est pas garantie.
 
 ## Developpement
 
-    npm test         196 verifications
+    npm test         226 verifications
     npm run serve    http://localhost:8765
     npm run catalogue  regenere data/donnes.json
 

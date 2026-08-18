@@ -5,6 +5,21 @@
 
 import { THEMES, TAPIS } from './themes.js';
 
+export const MODES = [
+    {
+        id: 'classique',
+        libelle: 'Classique',
+        aide: 'Les cartes se retournent au fur et à mesure, comme au Klondike de toujours.'
+    },
+    {
+        id: 'ouvert',
+        libelle: 'Ouvert',
+        aide: 'Toutes les cartes visibles dès le début : la donne devient un puzzle, '
+            + 'et une partie perdue l’est par une faute plutôt que par malchance. '
+            + 'Les statistiques sont comptées à part.'
+    }
+];
+
 export function formaterDuree(secondes) {
     const minutes = Math.floor(secondes / 60);
     return `${minutes}:${String(secondes % 60).padStart(2, '0')}`;
@@ -20,7 +35,7 @@ export function formaterJour(jour) {
 
 const pourcent = (part, total) => (total === 0 ? '—' : `${Math.round(part / total * 100)} %`);
 
-export function creerInterface({ surTheme, surTapis, surNouvelle, surDefi, surRejouer, surTerminer }) {
+export function creerInterface({ surMode, surTheme, surTapis, surNouvelle, surDefi, surRejouer, surTerminer }) {
     const $ = id => document.getElementById(id);
 
     const chrono = $('chrono');
@@ -33,7 +48,19 @@ export function creerInterface({ surTheme, surTapis, surNouvelle, surDefi, surRe
 
     // Choix de theme et de tapis, construits depuis les listes : ajouter une
     // couleur ne demande pas de toucher au document.
+    const choixMode = $('choix-mode');
+    const aideMode = $('aide-mode');
     const choixTheme = $('choix-theme');
+
+    for (const mode of MODES) {
+        const bouton = document.createElement('button');
+        bouton.type = 'button';
+        bouton.textContent = mode.libelle;
+        bouton.dataset.valeur = mode.id;
+        bouton.addEventListener('click', () => surMode(mode.id === 'ouvert'));
+        choixMode.append(bouton);
+    }
+
     const choixTapis = $('choix-tapis');
 
     for (const theme of THEMES) {
@@ -79,11 +106,15 @@ export function creerInterface({ surTheme, surTapis, surNouvelle, surDefi, surRe
         },
 
         majPreferences(preferences) {
+            const mode = preferences.ouvert ? 'ouvert' : 'classique';
+            cocher(choixMode, mode);
             cocher(choixTheme, preferences.theme);
             cocher(choixTapis, preferences.tapis);
+            aideMode.textContent = MODES.find(entree => entree.id === mode).aide;
         },
 
-        majStats(stats, jourFait) {
+        majStats(stats, jourFait, ouvert = false) {
+            $('stats-titre').textContent = ouvert ? 'Parties — mode ouvert' : 'Parties — mode classique';
             const liste = [
                 ['Parties jouées', stats.jouees],
                 ['Gagnées', `${stats.gagnees} (${pourcent(stats.gagnees, stats.jouees)})`],

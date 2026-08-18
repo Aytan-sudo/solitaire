@@ -374,6 +374,13 @@ button:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
     box-shadow: 0 0 0 2px var(--feuille), 0 0 0 4px var(--accent);
 }
 
+.aide {
+    margin: 8px 0 0;
+    font-size: 13px;
+    line-height: 1.45;
+    opacity: .62;
+}
+
 .stats {
     display: grid;
     grid-template-columns: 1fr auto;

@@ -8,7 +8,7 @@ const CLE_PREFERENCES = 'solitaire.preferences';
 const CLE_STATS = 'solitaire.stats';
 const CLE_PARTIE = 'solitaire.partie';
 
-export const PREFERENCES_PAR_DEFAUT = { theme: 'auto', tapis: 'vert' };
+export const PREFERENCES_PAR_DEFAUT = { theme: 'auto', tapis: 'vert', ouvert: false };
 
 export const STATS_PAR_DEFAUT = {
     jouees: 0,
@@ -40,13 +40,21 @@ function ecrire(cle, valeur) {
 
 export const lirePreferences = () => lire(CLE_PREFERENCES, PREFERENCES_PAR_DEFAUT);
 export const ecrirePreferences = preferences => ecrire(CLE_PREFERENCES, preferences);
-export const lireStats = () => lire(CLE_STATS, STATS_PAR_DEFAUT);
+
+// Un record n'a de sens que compare a ce qui lui ressemble. Une partie ou
+// toutes les cartes sont visibles n'a rien a voir avec une partie en aveugle :
+// les deux tiennent leurs comptes chacune de leur cote, plutot que de melanger
+// dans un meme palmares des parties incomparables. Le mode classique garde la
+// cle d'origine, pour ne pas effacer les parties deja jouees.
+const cleStats = ouvert => (ouvert ? `${CLE_STATS}.ouvert` : CLE_STATS);
+
+export const lireStats = (ouvert = false) => lire(cleStats(ouvert), STATS_PAR_DEFAUT);
 
 // Une partie compte des qu'elle est terminee — gagnee ou abandonnee pour une
 // autre. Compter les seules victoires donnerait un taux de reussite de cent
 // pour cent, ce qui ne renseigne personne.
-export function enregistrerFin({ gagnee, secondes, defi = null }) {
-    const stats = lireStats();
+export function enregistrerFin({ gagnee, secondes, defi = null, ouvert = false }) {
+    const stats = lireStats(ouvert);
     stats.jouees++;
 
     if (gagnee) {
@@ -59,7 +67,7 @@ export function enregistrerFin({ gagnee, secondes, defi = null }) {
         stats.serie = 0;
     }
 
-    ecrire(CLE_STATS, stats);
+    ecrire(cleStats(ouvert), stats);
     return stats;
 }
 

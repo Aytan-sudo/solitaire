@@ -5,7 +5,7 @@
     "description": "Klondike statique, donnes garanties gagnables, jouable hors ligne.",
     "type": "module",
     "scripts": {
-        "test": "node tests/test-cartes.mjs && node tests/test-regles.mjs && node tests/test-partie.mjs && node tests/test-solveur.mjs && node tests/test-donne.mjs && node tests/test-catalogue.mjs && node tests/test-geste.mjs && node tests/test-page.mjs",
+        "test": "node tests/test-cartes.mjs && node tests/test-regles.mjs && node tests/test-partie.mjs && node tests/test-solveur.mjs && node tests/test-donne.mjs && node tests/test-catalogue.mjs && node tests/test-storage.mjs && node tests/test-geste.mjs && node tests/test-page.mjs",
         "serve": "python3 -m http.server 8765",
         "catalogue": "node scripts/catalogue.mjs --nombre 5000 --sortie data/donnes.json"
     }

@@ -30,6 +30,7 @@ const jeu = {
     etat: null,
     graine: null,
     defi: null,        // jour du defi, si la partie en est un
+    ouvert: false,     // mode de la partie en cours, fige a la donne
     secondes: 0,       // temps deja accumule
     depuis: null,      // debut de la tranche en cours, null si a l'arret
     finie: false
@@ -63,8 +64,8 @@ document.addEventListener('visibilitychange', () => {
 
 // Deroulement d'une partie ---------------------------------------------
 
-function installer(etat, { graine, defi = null, secondes = 0, anime = true }) {
-    Object.assign(jeu, { etat, graine, defi, secondes, depuis: null, finie: gagnee(etat) });
+function installer(etat, { graine, defi = null, ouvert = false, secondes = 0, anime = true }) {
+    Object.assign(jeu, { etat, graine, defi, ouvert, secondes, depuis: null, finie: gagnee(etat) });
     if (anime) rendu.distribuer(etat); else rendu.dessiner(etat, { anime: false });
     apresCoup({ sauver: false });
 }
@@ -72,7 +73,7 @@ function installer(etat, { graine, defi = null, secondes = 0, anime = true }) {
 function commencer({ graine, defi = null }) {
     abandonner();
     ihm.fermerFeuilles();
-    installer(nouvellePartie(graine), { graine, defi });
+    installer(nouvellePartie(graine, { ouvert: preferences.ouvert }), { graine, defi, ouvert: preferences.ouvert });
 
     // Un lien partage peut porter n'importe quel numero, y compris une donne
     // que personne n'a jamais resolue. Le jeu la distribue quand meme — c'est
@@ -88,7 +89,7 @@ function commencer({ graine, defi = null }) {
 function abandonner() {
     if (!jeu.etat || jeu.finie || jeu.etat.coups === 0) return;
     arreterChrono();
-    enregistrerFin({ gagnee: false, secondes: ecoule(), defi: jeu.defi });
+    enregistrerFin({ gagnee: false, secondes: ecoule(), defi: jeu.defi, ouvert: jeu.ouvert });
     rafraichirStats();
 }
 
@@ -117,6 +118,7 @@ function sauver() {
         etat: jeu.etat,
         graine: jeu.graine,
         defi: jeu.defi,
+        ouvert: jeu.ouvert,
         secondes: ecoule(),
         version: 1
     });
@@ -129,10 +131,10 @@ function gagner() {
     ihm.majTerminer(false);
 
     const secondes = ecoule();
-    const avant = lireStats().meilleurTemps;
+    const avant = lireStats(jeu.ouvert).meilleurTemps;
     const record = avant === null || secondes < avant;
 
-    enregistrerFin({ gagnee: true, secondes, defi: jeu.defi });
+    enregistrerFin({ gagnee: true, secondes, defi: jeu.defi, ouvert: jeu.ouvert });
     rafraichirStats();
     setTimeout(() => ihm.montrerVictoire({
         secondes, nombreCoups: jeu.etat.coups, defi: jeu.defi, record
@@ -160,13 +162,33 @@ function appliquerPreferences() {
     ecrirePreferences(preferences);
 }
 
+// Le panneau montre les comptes du mode choisi, celui qu'on jouera au
+// prochain coup de cartes — pas forcement celui de la partie en cours.
 function rafraichirStats() {
-    ihm.majStats(lireStats(), defiFait(lireStats(), jourLocal()));
+    const stats = lireStats(preferences.ouvert);
+    ihm.majStats(stats, defiFait(stats, jourLocal()), preferences.ouvert);
 }
 
 // Mise en place --------------------------------------------------------
 
 const ihm = creerInterface({
+    // Le mode se fige a la donne. Une partie pas encore entamee se
+    // redistribue aussitot — meme numero, meme donne, cartes visibles. Une
+    // partie en cours, elle, ne se convertit pas : on ne peut pas recacher des
+    // cartes qui ont deja bouge.
+    surMode: ouvert => {
+        if (preferences.ouvert === ouvert) return;
+        preferences = { ...preferences, ouvert };
+        appliquerPreferences();
+        rafraichirStats();
+
+        if (jeu.etat && jeu.etat.coups === 0 && !jeu.finie) {
+            installer(nouvellePartie(jeu.graine, { ouvert }), { graine: jeu.graine, defi: jeu.defi, ouvert });
+            ihm.annoncer(ouvert ? 'Donne ouverte' : 'Donne classique');
+        } else {
+            ihm.annoncer('S’appliquera à la prochaine donne');
+        }
+    },
     surTheme: theme => { preferences = { ...preferences, theme }; appliquerPreferences(); },
     surTapis: tapis => { preferences = { ...preferences, tapis }; appliquerPreferences(); },
     surNouvelle: () => commencer({ graine: graineAuHasard(catalogue) }),
@@ -216,6 +238,7 @@ async function demarrer() {
         installer(reprise.etat, {
             graine: reprise.graine,
             defi: reprise.defi,
+            ouvert: Boolean(reprise.ouvert),
             secondes: reprise.secondes,
             anime: false
         });

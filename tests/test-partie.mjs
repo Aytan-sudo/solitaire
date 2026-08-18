@@ -25,6 +25,22 @@ check('la meme graine redonne la meme donne',
 check('une autre graine donne une autre donne',
     nouvellePartie(2027).colonnes.flat().join() !== partie.colonnes.flat().join());
 
+// Le mode ouvert : les memes donnes, sans rien de cache.
+const ouverte = nouvellePartie(2026, { ouvert: true });
+check('la donne ouverte ne cache aucune carte', ouverte.cachees.every(compte => compte === 0));
+check('la donne ouverte distribue les memes cartes',
+    ouverte.colonnes.flat().join() === partie.colonnes.flat().join());
+check('la donne ouverte garde le meme talon', ouverte.pioche.join() === partie.pioche.join());
+check('le mode ouvert ne se declenche pas tout seul',
+    nouvellePartie(2026).cachees.join() === partie.cachees.join());
+
+// Consequence des cartes visibles : une suite enfouie devient deplacable. Le
+// mode ouvert est donc strictement plus permissif que le classique, ce qui
+// laisse la garantie du catalogue valable a plus forte raison.
+const enfouie = [...Array(7).keys()].map(i => nouvellePartie(i + 1, { ouvert: true }));
+check('les coups possibles ne diminuent jamais en mode ouvert',
+    enfouie.every((donne, i) => coupsPossibles(donne).length >= coupsPossibles(nouvellePartie(i + 1)).length));
+
 // Piocher, puis retourner le talon.
 const pioche = jouer(partie, { type: 'piocher' });
 check('piocher deplace une carte vers la defausse',

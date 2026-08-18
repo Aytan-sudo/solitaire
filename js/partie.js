@@ -19,7 +19,12 @@ export const DEFAUSSE = 'D';
 export const colonneId = i => `C${i}`;
 export const fondationId = i => `F${i}`;
 
-export function nouvellePartie(graine = 1) {
+// Le mode ouvert distribue les memes donnes, mais toutes faces visibles. Le
+// Klondike cesse alors d'etre un jeu de chance pour devenir un puzzle : une
+// partie perdue l'est par une faute, plus par une carte qu'on ne pouvait pas
+// connaitre. Le catalogue vaut tel quel — le solveur resout justement cette
+// version-la, puisqu'il voit les cartes retournees.
+export function nouvellePartie(graine = 1, { ouvert = false } = {}) {
     const paquet = melanger(paquetNeuf(), alea(graine));
     const colonnes = Array.from({ length: COLONNES }, () => []);
 
@@ -36,7 +41,7 @@ export function nouvellePartie(graine = 1) {
         defausse: [],
         fondations: Array.from({ length: FONDATIONS }, () => []),
         colonnes,
-        cachees: colonnes.map(pile => pile.length - 1),
+        cachees: colonnes.map(pile => (ouvert ? 0 : pile.length - 1)),
         redonnes: 0,
         coups: 0
     };
