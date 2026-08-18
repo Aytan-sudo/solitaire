@@ -141,6 +141,45 @@ doigt.bouger(3, 2);
 doigt.relacher(3, 2);
 check('un doigt qui tremble tape quand meme', dernierCoup()?.vers === fondationId(0));
 
+// Le plan des cartes. Une carte en mouvement doit passer par-dessus tout le
+// reste : son plan d'arrivee ne dit rien du chemin, et sans surelevation elle
+// se glisse sous les colonnes qu'elle survole.
+const plan = texte => Number(carte(texte).style.zIndex);
+const plansAutres = (...exclues) => {
+    const exclus = new Set(exclues.map(depuisNom));
+    return [...rendu.disposition().positions.keys()]
+        .filter(carte => !exclus.has(carte))
+        .map(carte => Number(rendu.element(carte).style.zIndex));
+};
+
+remettre();
+rendu.dessiner(etat, { anime: false });
+check('au repos, les plans restent ceux de la disposition',
+    Math.max(...plansAutres()) < 52, `${Math.max(...plansAutres())}`);
+
+doigt.appuyer(carte('DC'), 0, 0);
+doigt.bouger(pas, 0);
+check('la carte tenue passe au-dessus de toutes les autres',
+    plan('DC') > Math.max(...plansAutres('DC', 'VP')));
+check('la suite tenue garde son ordre', plan('VP') > plan('DC'));
+doigt.relacher(pas, 0);
+check('la carte reposee redescend', plan('DC') < 52, `${plan('DC')}`);
+
+remettre();
+doigt.taper(carte('AP'));
+check('la carte qui vole vers sa fondation survole le tableau',
+    plan('AP') > Math.max(...plansAutres('AP')));
+
+// Le geste coupe le comportement par defaut du navigateur : sinon un glisser
+// a la souris selectionne le tapis, et un appui au doigt guette le double-tap.
+remettre();
+check('un appui sur une carte ne laisse pas le navigateur faire',
+    doigt.appuyer(carte('9T'), 0, 0).defaut === false);
+doigt.relacher(0, 0);
+check('un appui sur le tapis non plus',
+    doigt.appuyer(plateau, 0, 0).defaut === false);
+doigt.relacher(0, 0);
+
 // Ce qu'on ne doit pas pouvoir attraper.
 remettre();
 const donne = nouvellePartie(11);

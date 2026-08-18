@@ -36,20 +36,37 @@ function recouvrement(a, b) {
 export function creerGestes({ plateau, rendu, lire, jouer, annoncer }) {
     let saisie = null;
 
+    // La capture garde le pointeur meme si le doigt sort du tapis : sans elle,
+    // un relachement au-dessus du bandeau ne revient jamais au plateau, et la
+    // saisie en cours ne se termine pas — plus un geste ne passe ensuite. Elle
+    // echoue sur un evenement synthetique, ou il n'y a pas de pointeur a
+    // capturer : ce n'est pas une raison pour renoncer au geste.
+    const capturer = pointerId => {
+        try { plateau.setPointerCapture(pointerId); } catch { /* sans capture */ }
+    };
+
     const fin = () => {
         if (!saisie) return;
         for (const element of saisie.elements) element.classList.remove('saisie');
+        if (saisie.glisse) rendu.reposer();
         rendu.surbrillance(new Set());
         saisie = null;
     };
 
     plateau.addEventListener('pointerdown', evenement => {
         if (saisie || evenement.button > 0) return;
+
+        // Le tapis n'est pas un texte : sans cela, un glisser a la souris tire
+        // une selection en travers du plateau et surligne le coin des cartes,
+        // et un appui au doigt reste un candidat au zoom du double-tap.
+        evenement.preventDefault();
+
         const etat = lire();
 
         const creux = evenement.target.closest('.emplacement');
         if (creux?.dataset.role === 'pioche') {
             saisie = { talon: true, pointerId: evenement.pointerId, elements: [] };
+            capturer(evenement.pointerId);
             return;
         }
 
@@ -60,6 +77,7 @@ export function creerGestes({ plateau, rendu, lire, jouer, annoncer }) {
         const index = Number(element.dataset.index);
         if (de === PIOCHE) {
             saisie = { talon: true, pointerId: evenement.pointerId, elements: [] };
+            capturer(evenement.pointerId);
             return;
         }
         if (!element.classList.contains('prenable')) return;
@@ -80,10 +98,7 @@ export function creerGestes({ plateau, rendu, lire, jouer, annoncer }) {
             glisse: false,
             legales: null
         };
-        // La capture garde le pointeur meme si le doigt sort du tapis. Elle
-        // echoue sur un evenement synthetique, ou il n'y a pas de pointeur a
-        // capturer : ce n'est pas une raison pour renoncer au glisser.
-        try { plateau.setPointerCapture(evenement.pointerId); } catch { /* sans capture */ }
+        capturer(evenement.pointerId);
     });
 
     plateau.addEventListener('pointermove', evenement => {
@@ -97,6 +112,7 @@ export function creerGestes({ plateau, rendu, lire, jouer, annoncer }) {
             saisie.glisse = true;
             saisie.legales = new Set(destinationsPour(lire(), saisie.de, saisie.index));
             rendu.surbrillance(saisie.legales);
+            rendu.saisir(saisie.cartes);
             for (const element of saisie.elements) element.classList.add('saisie');
         }
 

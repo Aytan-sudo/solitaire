@@ -5,6 +5,12 @@
 
 import { THEMES, TAPIS } from './themes.js';
 
+// Le numero que le joueur lit au bas des reglages. Il vit a trois endroits qui
+// doivent s'accorder — ici, dans package.json et dans le nom du cache du
+// service worker — et un test s'en assure : une version publiee sous un cache
+// deja nomme ne parviendrait jamais aux joueurs qui ont installe le jeu.
+export const VERSION = '1.0.0';
+
 export const MODES = [
     {
         id: 'classique',
@@ -87,6 +93,8 @@ export function creerInterface({ surMode, surTheme, surTapis, surNouvelle, surDe
             bouton.setAttribute('aria-pressed', String(bouton.dataset.valeur === valeur));
         }
     };
+
+    $('version').textContent = `Solitaire ${VERSION}`;
 
     $('reglages-ouvrir').addEventListener('click', () => reglages.showModal());
     $('nouvelle').addEventListener('click', () => surNouvelle());

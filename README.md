@@ -115,6 +115,12 @@ du Klondike n'a pas de hauteur bornee, alors chaque colonne resserre son
 empilement quand elle deborde, plutot que de laisser des cartes sortir de
 l'ecran.
 
+Les plans de superposition sont poses en ligne, eux aussi, et par la meme
+occasion : au repos, chaque carte porte son rang dans la disposition. Une carte
+qui bouge est surelevee d'un palier le temps du voyage, et de deux tant qu'un
+doigt la tient — sans quoi son plan d'arrivee, qui ne dit rien du chemin, la
+ferait passer sous les colonnes qu'elle survole.
+
 ## Les fichiers
 
     js/hasard.js     graine -> melange reproductible, empreinte d'une date
@@ -151,7 +157,7 @@ distribue quand meme, en annoncant qu'elle n'est pas garantie.
 
 ## Developpement
 
-    npm test         226 verifications
+    npm test         240 verifications
     npm run serve    http://localhost:8765
     npm run catalogue  regenere data/donnes.json
 
@@ -160,6 +166,12 @@ tournent contre un faux document minimal (`tests/dom.mjs`) qui recoit de vrais
 gestes — appuyer, glisser, relacher. C'est la couche ou une faute ne leve
 aucune exception : une carte qu'on ne peut pas attraper ne fait rien, elle ne
 bouge simplement pas.
+
+Le numero de version vit a trois endroits — `package.json`, `js/ui.js` (ou le
+joueur le lit, au bas des reglages) et le nom du cache dans `sw.js`. Un test
+les compare : un cache qui garde son nom garde son contenu, donc une version
+publiee sans renommer le cache ne parviendrait jamais aux joueurs qui ont
+installe le jeu.
 
 `tests/test-catalogue.mjs` tire quinze graines au sort dans le fichier livre,
 les resout a nouveau et rejoue chaque solution dans le moteur. Un catalogue qui

@@ -16,6 +16,7 @@ const lire = chemin => readFileSync(join(racine, chemin), 'utf8');
 
 const page = lire('index.html');
 const worker = lire('sw.js');
+const style = lire('css/style.css');
 const manifeste = JSON.parse(lire('manifest.webmanifest'));
 
 // Ce que la page charge vraiment : on suit les imports depuis app.js, plutot
@@ -57,7 +58,16 @@ check('le service worker connait tous les modules charges', absents.length === 0
 check('le service worker ignore le solveur', !coquille.includes('js/solveur.js'));
 check('le service worker met en cache la feuille de style', coquille.includes('css/style.css'));
 check('le service worker met en cache le catalogue', coquille.includes('data/donnes.json'));
-check('le service worker porte un numero de version', /const VERSION = 'solitaire-v\d+'/.test(worker));
+// Le numero de version vit a trois endroits, et les trois doivent s'accorder.
+// Celui du cache surtout : un cache qui garde son nom garde son contenu, donc
+// une version publiee sans renommer le cache ne parvient jamais aux joueurs
+// qui ont installe le jeu — ils continuent de jouer l'ancienne, sans le savoir.
+const version = JSON.parse(lire('package.json')).version;
+check('le numero de version est un numero', /^\d+\.\d+\.\d+$/.test(version), version);
+check('la page affiche la version de package.json',
+    lire('js/ui.js').includes(`export const VERSION = '${version}'`), version);
+check('le cache du service worker porte la version',
+    worker.includes(`const VERSION = 'solitaire-${version}'`), version);
 
 // Chaque fichier annonce dans la coquille doit exister.
 const manquants = coquille.filter(chemin => chemin !== './' && !existsSync(join(racine, chemin)));
@@ -72,6 +82,27 @@ for (const nom of ['ui.js', 'app.js']) {
 const inconnus = [...cherches].filter(id => !page.includes(`id="${id}"`));
 check(`les ${cherches.size} identifiants cherches existent dans la page`,
     inconnus.length === 0, inconnus.join(' '));
+
+// Ce que la feuille de style doit au geste. Rien de tout cela ne se voit dans
+// le faux document des tests, ou il n'y a ni empilement ni pointeur : ce sont
+// pourtant des pannes de jeu, pas des details d'habillage.
+//
+// Les deux calques couvrent le tapis entier. Si celui des cartes recoit les
+// appuis, il avale ceux qui visaient un creux vide — et le talon vide, qui est
+// le bouton de la redonne, cesse de repondre des le premier tour de pioche.
+check('le calque des cartes laisse passer les appuis',
+    /\.emplacements, \.cartes \{[^}]*pointer-events: none/.test(style));
+check('les cartes et les creux, eux, les recoivent',
+    /\.emplacement, \.carte \{[^}]*pointer-events: auto/s.test(style));
+
+// Le plan d'une carte est pose en ligne par rendu.js : une regle de feuille de
+// style ne peut pas le surpasser, et celle qui essaierait mentirait.
+check('la feuille de style ne pretend pas gerer les plans', !/z-index/.test(style));
+
+// Jouer, ce n'est ni lire ni zoomer.
+check('le double-tap ne zoome pas', /touch-action: manipulation/.test(style));
+check('le tapis ne se selectionne pas',
+    /\.plateau \{[^}]*[^-]user-select: none/s.test(style));
 
 // Manifeste et icones.
 check('la page declare le manifeste', page.includes('rel="manifest"'));

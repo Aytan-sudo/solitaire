@@ -102,17 +102,25 @@ export function installerDom({ largeur = 800, hauteur = 640 } = {}) {
 // Gestes, ecrits comme on les decrirait : appuyer ici, glisser la, relacher.
 export function geste(plateau) {
     let pointeur = 0;
+    // Le navigateur en fournit toujours un ; le code s'en sert pour couper la
+    // selection de texte et le zoom du double-tap.
+    const evenement = (cible, x, y) => ({
+        target: cible, clientX: x, clientY: y, pointerId: pointeur, button: 0,
+        defaut: true,
+        preventDefault() { this.defaut = false; }
+    });
     return {
         appuyer(cible, x = 0, y = 0) {
             pointeur++;
-            plateau.envoyer('pointerdown', { target: cible, clientX: x, clientY: y, pointerId: pointeur, button: 0 });
-            return { x, y };
+            const appui = evenement(cible, x, y);
+            plateau.envoyer('pointerdown', appui);
+            return appui;
         },
         bouger(x, y) {
-            plateau.envoyer('pointermove', { target: plateau, clientX: x, clientY: y, pointerId: pointeur, button: 0 });
+            plateau.envoyer('pointermove', evenement(plateau, x, y));
         },
         relacher(x = 0, y = 0) {
-            plateau.envoyer('pointerup', { target: plateau, clientX: x, clientY: y, pointerId: pointeur, button: 0 });
+            plateau.envoyer('pointerup', evenement(plateau, x, y));
         },
         // Un appui relache sur place : le clic-clic.
         taper(cible) {

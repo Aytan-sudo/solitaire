@@ -80,6 +80,11 @@
 
 * { box-sizing: border-box; }
 
+/* Un jeu se tape et se glisse, il ne se lit pas : le double-tap ne doit pas
+ * zoomer, ce qui arrive des qu'on joue deux cartes coup sur coup. `manipulation`
+ * laisse le pincement — on ne prive personne de la loupe. */
+html, body { touch-action: manipulation; }
+
 body {
     margin: 0;
     min-height: 100dvh;
@@ -90,6 +95,7 @@ body {
     font: 500 16px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
     overscroll-behavior: none;
     -webkit-tap-highlight-color: transparent;
+    -webkit-text-size-adjust: 100%;
 }
 
 /* Barre du haut ------------------------------------------------------- */
@@ -100,6 +106,8 @@ body {
     gap: 12px;
     padding: max(8px, env(safe-area-inset-top)) 12px 8px;
     background: var(--barre);
+    -webkit-user-select: none;
+    user-select: none;
 }
 
 .compteurs {
@@ -155,11 +163,15 @@ button:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
     flex: 1;
     background: radial-gradient(120% 90% at 50% 0%, var(--tapis), var(--tapis-creux));
     touch-action: none;          /* le glisser des cartes n'est pas un scroll */
+    -webkit-user-select: none;   /* le prefixe reste utile a Safari */
     user-select: none;
     overflow: hidden;
 }
 
-.emplacements, .cartes { position: absolute; inset: 0; }
+/* Deux calques qui couvrent tout le tapis : ils ne recoivent rien eux-memes,
+ * sinon le calque du dessus avalerait les appuis destines au creux du dessous
+ * — a commencer par le talon vide, qui est le bouton de la redonne. */
+.emplacements, .cartes { position: absolute; inset: 0; pointer-events: none; }
 
 .emplacement, .carte {
     position: absolute;
@@ -169,6 +181,7 @@ button:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
     height: var(--carte-h);
     border-radius: var(--rayon);
     transform: translate(var(--x), var(--y));
+    pointer-events: auto;
 }
 
 /* Creux ou se posent les cartes. */
@@ -208,12 +221,13 @@ button:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
 
 .carte {
     perspective: 900px;
+    -webkit-user-drag: none;     /* pas de glisser natif par-dessus le notre */
     transition: transform var(--duree) cubic-bezier(.22, .61, .36, 1);
     will-change: transform;
 }
 
 .carte.posee { transition: none; }        /* placement initial, sans glissade */
-.carte.saisie { transition: none; z-index: 999; }
+.carte.saisie { transition: none; }       /* le plan est pose en ligne, cf. rendu.js */
 
 .pivot {
     position: relative;
@@ -393,6 +407,16 @@ button:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
 .stats dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
 
 .detail { margin: 0 0 20px; opacity: .8; font-size: 15px; }
+
+/* Le numero de version : la ou on le cherche quand on se demande si la mise a
+ * jour est bien arrivee, et invisible le reste du temps. */
+.version {
+    margin: 20px 0 0;
+    text-align: center;
+    font-size: 12.5px;
+    opacity: .45;
+    font-variant-numeric: tabular-nums;
+}
 
 .pied {
     display: flex;

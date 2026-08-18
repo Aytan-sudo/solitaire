@@ -23,6 +23,16 @@ const OFF_VISIBLE = 0.26;
 const RANGEE_MIN = 2.4;         // hauteurs de carte reservees au tableau
 const CARTE_MAX = 106;          // px : au-dela, un jeu de cartes fait affiche
 
+// Plans de superposition. Au repos, chaque carte porte le rang qu'elle occupe
+// dans la disposition — cinquante-deux valeurs, de zero a cinquante et un. Une
+// carte qui bouge doit passer par-dessus tout le reste : son plan d'arrivee ne
+// dit rien du chemin, et une carte qui traverse le tableau pour rejoindre une
+// fondation se glisserait sous les colonnes qu'elle survole. On la sureleve
+// donc d'un palier, le temps du voyage, et de deux tant qu'un doigt la tient.
+const EN_VOL = 100;
+const AU_DOIGT = 200;
+const VOL_MS = 400;             // un peu plus que --duree, transition comprise
+
 export function creerRendu({ plateau, emplacements, cartes }) {
     const elements = new Map();
     let g = null;               // geometrie courante
@@ -157,8 +167,28 @@ export function creerRendu({ plateau, emplacements, cartes }) {
     }
 
     let derniere = null;
+    let atterrissage = null;    // minuteur qui redescend les cartes arrivees
+
+    // Fin du voyage : chacun retrouve son plan, pour que le coup suivant reparte
+    // d'un tapis a plat.
+    function reposer() {
+        clearTimeout(atterrissage);
+        if (!derniere) return;
+        for (const [carte, element] of elements) {
+            const position = derniere.positions.get(carte);
+            if (position) element.style.zIndex = position.plan;
+        }
+    }
+
+    // Les cartes que le joueur tient : au-dessus de toutes les autres, et dans
+    // leur ordre a elles, pour qu'une suite transportee reste lisible.
+    function saisir(cartes) {
+        reposer();
+        cartes.forEach((carte, rang) => { elements.get(carte).style.zIndex = AU_DOIGT + rang; });
+    }
 
     function dessiner(etat, { anime = true } = {}) {
+        const avant = derniere?.positions ?? null;
         const { positions, zones } = disposer(etat);
         derniere = { positions, zones };
 
@@ -173,9 +203,15 @@ export function creerRendu({ plateau, emplacements, cartes }) {
             }
         });
 
+        let envol = false;
+
         for (const [carte, element] of elements) {
             const position = positions.get(carte);
             if (!position) continue;
+
+            const depart = avant?.get(carte);
+            const vole = anime && Boolean(depart) && (depart.x !== position.x || depart.y !== position.y);
+            envol ||= vole;
 
             const cachee = position.pile === PIOCHE
                 || (position.pile[0] === 'C' && position.index < etat.cachees[Number(position.pile.slice(1))]);
@@ -183,7 +219,7 @@ export function creerRendu({ plateau, emplacements, cartes }) {
             element.classList.toggle('posee', !anime);
             element.classList.toggle('cachee', cachee);
             element.classList.toggle('prenable', !cachee && prenables.has(carte));
-            element.style.zIndex = position.plan;
+            element.style.zIndex = position.plan + (vole ? EN_VOL : 0);
             element.dataset.pile = position.pile;
             element.dataset.index = position.index;
             element.setAttribute('aria-label', cachee ? 'carte face cachée' : nom(carte));
@@ -191,6 +227,12 @@ export function creerRendu({ plateau, emplacements, cartes }) {
         }
 
         creux.get(PIOCHE).classList.toggle('vide', etat.pioche.length === 0);
+
+        clearTimeout(atterrissage);
+        if (envol) {
+            atterrissage = setTimeout(reposer, VOL_MS);
+            atterrissage?.unref?.();       // en test, un minuteur ne retient pas Node
+        }
         return derniere;
     }
 
@@ -218,7 +260,7 @@ export function creerRendu({ plateau, emplacements, cartes }) {
     };
 
     return {
-        mesurer, dessiner, distribuer, surbrillance, refuser, disposer,
+        mesurer, dessiner, distribuer, surbrillance, refuser, disposer, saisir, reposer,
         element: carte => elements.get(carte),
         disposition: () => derniere,
         creux: id => creux.get(id),
