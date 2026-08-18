@@ -1,0 +1,31 @@
+{
+    "name": "Solitaire",
+    "short_name": "Solitaire",
+    "description": "Le Klondike, avec des donnes garanties gagnables. Défi du jour, jouable hors ligne.",
+    "lang": "fr",
+    "start_url": "./",
+    "scope": "./",
+    "display": "standalone",
+    "orientation": "any",
+    "background_color": "#1d6b4a",
+    "theme_color": "#1d6b4a",
+    "categories": ["games", "card"],
+    "icons": [
+        {
+            "src": "assets/icon-192.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "assets/icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "assets/icon.svg",
+            "sizes": "any",
+            "type": "image/svg+xml"
+        }
+    ]
+}

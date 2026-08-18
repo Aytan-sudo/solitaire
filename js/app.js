@@ -1,0 +1,232 @@
+// Le cablage : ce qui relie le moteur, le tapis et le joueur.
+//
+// Tout ce qui decide est ailleurs — les regles dans partie.js, le choix de la
+// donne dans donne.js, l'allure dans rendu.js. Ce fichier ne fait qu'ordonner
+// les evenements : un coup, un dessin, une sauvegarde.
+
+import { nouvellePartie, jouer as jouerCoup, coupsPossibles, gagnee, derouleAutomatique } from './partie.js';
+import { chargerCatalogue, graineDuJour, graineAuHasard, estGarantie } from './donne.js';
+import { jourLocal } from './hasard.js';
+import { creerRendu } from './rendu.js';
+import { creerGestes } from './geste.js';
+import { creerInterface, formaterJour } from './ui.js';
+import * as themes from './themes.js';
+import {
+    lirePreferences, ecrirePreferences, lireStats, enregistrerFin, defiFait,
+    sauverPartie, lirePartie, oublierPartie
+} from './storage.js';
+
+const plateau = document.getElementById('plateau');
+const rendu = creerRendu({
+    plateau,
+    emplacements: document.getElementById('emplacements'),
+    cartes: document.getElementById('cartes')
+});
+
+let preferences = lirePreferences();
+let catalogue = null;
+
+const jeu = {
+    etat: null,
+    graine: null,
+    defi: null,        // jour du defi, si la partie en est un
+    secondes: 0,       // temps deja accumule
+    depuis: null,      // debut de la tranche en cours, null si a l'arret
+    finie: false
+};
+
+// Chrono ---------------------------------------------------------------
+//
+// Le temps se calcule a partir d'horodatages, pas en comptant des battements :
+// un onglet mis en arriere-plan ralentit les minuteries, et le joueur qui
+// revient retrouverait un chrono en retard sur sa partie.
+
+const ecoule = () =>
+    Math.floor(jeu.secondes + (jeu.depuis === null ? 0 : (Date.now() - jeu.depuis) / 1000));
+
+function demarrerChrono() {
+    if (jeu.depuis === null && !jeu.finie) jeu.depuis = Date.now();
+}
+
+function arreterChrono() {
+    if (jeu.depuis === null) return;
+    jeu.secondes += (Date.now() - jeu.depuis) / 1000;
+    jeu.depuis = null;
+}
+
+setInterval(() => ihm.majCompteurs(ecoule(), jeu.etat?.coups ?? 0), 500);
+
+document.addEventListener('visibilitychange', () => {
+    if (document.hidden) { arreterChrono(); sauver(); }
+    else if (jeu.etat?.coups > 0) demarrerChrono();
+});
+
+// Deroulement d'une partie ---------------------------------------------
+
+function installer(etat, { graine, defi = null, secondes = 0, anime = true }) {
+    Object.assign(jeu, { etat, graine, defi, secondes, depuis: null, finie: gagnee(etat) });
+    if (anime) rendu.distribuer(etat); else rendu.dessiner(etat, { anime: false });
+    apresCoup({ sauver: false });
+}
+
+function commencer({ graine, defi = null }) {
+    abandonner();
+    ihm.fermerFeuilles();
+    installer(nouvellePartie(graine), { graine, defi });
+
+    // Un lien partage peut porter n'importe quel numero, y compris une donne
+    // que personne n'a jamais resolue. Le jeu la distribue quand meme — c'est
+    // ce qu'on lui demande — mais il ne laisse pas croire qu'elle est garantie.
+    if (defi) ihm.annoncer(`Défi du ${formaterJour(defi)}`);
+    else if (estGarantie(catalogue, graine)) ihm.annoncer(`Donne n° ${graine}`);
+    else ihm.annoncer(`Donne n° ${graine} — non garantie`);
+}
+
+// Une partie entamee puis quittee compte comme perdue. Ne compter que les
+// victoires donnerait cent pour cent de reussite, ce qui ne renseigne
+// personne — surtout avec des donnes toutes gagnables.
+function abandonner() {
+    if (!jeu.etat || jeu.finie || jeu.etat.coups === 0) return;
+    arreterChrono();
+    enregistrerFin({ gagnee: false, secondes: ecoule(), defi: jeu.defi });
+    rafraichirStats();
+}
+
+function jouer(coup) {
+    if (jeu.finie) return false;
+    const suivant = jouerCoup(jeu.etat, coup);
+    if (!suivant) return false;
+
+    jeu.etat = suivant;
+    demarrerChrono();
+    rendu.dessiner(jeu.etat);
+    apresCoup();
+    return true;
+}
+
+function apresCoup({ sauver: doitSauver = true } = {}) {
+    ihm.majCompteurs(ecoule(), jeu.etat.coups);
+    ihm.majTerminer(derouleAutomatique(jeu.etat));
+    if (doitSauver) sauver();
+    if (gagnee(jeu.etat)) gagner();
+}
+
+function sauver() {
+    if (!jeu.etat || jeu.finie) return;
+    sauverPartie({
+        etat: jeu.etat,
+        graine: jeu.graine,
+        defi: jeu.defi,
+        secondes: ecoule(),
+        version: 1
+    });
+}
+
+function gagner() {
+    arreterChrono();
+    jeu.finie = true;
+    oublierPartie();
+    ihm.majTerminer(false);
+
+    const secondes = ecoule();
+    const avant = lireStats().meilleurTemps;
+    const record = avant === null || secondes < avant;
+
+    enregistrerFin({ gagnee: true, secondes, defi: jeu.defi });
+    rafraichirStats();
+    setTimeout(() => ihm.montrerVictoire({
+        secondes, nombreCoups: jeu.etat.coups, defi: jeu.defi, record
+    }), 700);
+}
+
+// Deroule final. Il ne joue que des montees : quand il n'en reste plus, c'est
+// qu'une carte gene encore, et le joueur reprend la main. Une position ou tout
+// est retourne n'est pas toujours rangeable d'un seul geste.
+function terminer() {
+    const coup = coupsPossibles(jeu.etat).find(c => c.type === 'deplacer' && c.vers[0] === 'F');
+    if (!coup) {
+        if (!gagnee(jeu.etat)) ihm.annoncer('Il reste des cartes à déplacer.');
+        return;
+    }
+    jouer(coup);
+    setTimeout(terminer, 110);
+}
+
+// Preferences ----------------------------------------------------------
+
+function appliquerPreferences() {
+    themes.appliquer(preferences);
+    ihm.majPreferences(preferences);
+    ecrirePreferences(preferences);
+}
+
+function rafraichirStats() {
+    ihm.majStats(lireStats(), defiFait(lireStats(), jourLocal()));
+}
+
+// Mise en place --------------------------------------------------------
+
+const ihm = creerInterface({
+    surTheme: theme => { preferences = { ...preferences, theme }; appliquerPreferences(); },
+    surTapis: tapis => { preferences = { ...preferences, tapis }; appliquerPreferences(); },
+    surNouvelle: () => commencer({ graine: graineAuHasard(catalogue) }),
+    surDefi: () => commencer({ graine: graineDuJour(catalogue), defi: jourLocal() }),
+    surRejouer: () => commencer({ graine: jeu.graine }),
+    surTerminer: terminer
+});
+
+creerGestes({
+    plateau,
+    rendu,
+    lire: () => jeu.etat,
+    jouer,
+    annoncer: ihm.annoncer
+});
+
+// La geometrie depend de la place disponible : rotation, clavier logiciel,
+// fenetre redimensionnee. Le redessin est instantane, sinon les cartes
+// glisseraient a chaque pixel gagne.
+new ResizeObserver(() => {
+    rendu.mesurer();
+    if (jeu.etat) rendu.dessiner(jeu.etat, { anime: false });
+}).observe(plateau);
+
+async function demarrer() {
+    appliquerPreferences();
+    rendu.mesurer();
+    catalogue = await chargerCatalogue();
+    rafraichirStats();
+
+    // Une donne demandee dans l'adresse passe avant tout : c'est un lien
+    // partage, on ne va pas ouvrir autre chose.
+    const parametres = new URLSearchParams(location.search);
+    const demandee = Number(parametres.get('donne'));
+
+    if (parametres.has('defi')) {
+        commencer({ graine: graineDuJour(catalogue), defi: jourLocal() });
+        return;
+    }
+    if (Number.isInteger(demandee) && demandee > 0) {
+        commencer({ graine: demandee });
+        return;
+    }
+
+    const reprise = lirePartie();
+    if (reprise) {
+        installer(reprise.etat, {
+            graine: reprise.graine,
+            defi: reprise.defi,
+            secondes: reprise.secondes,
+            anime: false
+        });
+        ihm.annoncer('Partie reprise');
+        return;
+    }
+    commencer({ graine: graineAuHasard(catalogue) });
+}
+
+demarrer();
+
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+}

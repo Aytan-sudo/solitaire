@@ -1,0 +1,398 @@
+/* Solitaire — habillage.
+ *
+ * La geometrie (taille des cartes, position de chaque pile) est calculee en
+ * JavaScript et posee ici en variables : le CSS ne decide de rien, il habille.
+ * Chaque carte est un element positionne par transform, ce qui permet de la
+ * deplacer par transition sans jamais toucher a la mise en page.
+ *
+ * Aucune image : les cartes sont dessinees. 52 fichiers a charger, a mettre en
+ * cache et a redessiner pour le theme sombre, contre quelques regles ici.
+ */
+
+:root {
+    color-scheme: light dark;
+
+    /* Une seule couleur choisie par le joueur : tout le reste en decoule,
+     * bandeau et fond compris. Deux palettes a tenir a jour pour un jeu qui
+     * est de toute facon un tapis vert, c'etait une de trop. */
+    --tapis-choisi: #1d6b4a;
+
+    --tapis: var(--tapis-choisi);
+    --tapis-creux: color-mix(in srgb, var(--tapis) 82%, black);
+    --tapis-trait: color-mix(in srgb, var(--tapis) 65%, black);
+
+    --fond: color-mix(in srgb, var(--tapis) 26%, #0c0e10);
+    --barre: color-mix(in srgb, var(--tapis) 55%, black);
+    --encre: #f3f5f7;
+    --encre-faible: color-mix(in srgb, #f3f5f7 55%, transparent);
+
+    --carte-fond: #fbfaf7;
+    --carte-bord: #d8d3c8;
+    --carte-noire: #22262b;
+    --carte-rouge: #c0362c;
+    --dos-clair: #e8eef5;
+    --dos-fonce: #4a6f9c;
+
+    --feuille: #f7f8fa;
+    --feuille-encre: #1b1f24;
+    --accent: #1d6b4a;
+
+    /* Posees par js/rendu.js */
+    --carte-l: 60px;
+    --carte-h: 84px;
+    --rayon: 6px;
+    --duree: 180ms;
+}
+
+:root[data-theme="sombre"] {
+    --tapis: color-mix(in srgb, var(--tapis-choisi) 58%, black);
+    --carte-fond: #e4e1da;
+    --carte-bord: #b0aa9d;
+    --carte-noire: #191d21;
+    --carte-rouge: #a53027;
+    --dos-clair: #b9c6d6;
+    --dos-fonce: #33506f;
+    --feuille: #1e2227;
+    --feuille-encre: #eef1f4;
+    --accent: #58c294;
+}
+
+/* Sans choix explicite, on suit le systeme. Le garde-fou :not([clair]) evite
+ * qu'un joueur ayant demande le theme clair se le voie repris la nuit. */
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="clair"]) {
+        --tapis: color-mix(in srgb, var(--tapis-choisi) 58%, black);
+        --carte-fond: #e4e1da;
+        --carte-bord: #b0aa9d;
+        --carte-noire: #191d21;
+        --carte-rouge: #a53027;
+        --dos-clair: #b9c6d6;
+        --dos-fonce: #33506f;
+        --feuille: #1e2227;
+        --feuille-encre: #eef1f4;
+        --accent: #58c294;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    :root { --duree: 1ms; }
+}
+
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    background: var(--fond);
+    color: var(--encre);
+    font: 500 16px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    overscroll-behavior: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* Barre du haut ------------------------------------------------------- */
+
+.barre {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: max(8px, env(safe-area-inset-top)) 12px 8px;
+    background: var(--barre);
+}
+
+.compteurs {
+    display: flex;
+    gap: 14px;
+    margin-inline: auto;
+    font-variant-numeric: tabular-nums;
+}
+
+.compteur { font-size: 15px; opacity: .85; }
+.compteur::before { opacity: .6; margin-right: 4px; }
+#chrono::before { content: "⏱"; }
+#coups::before { content: "↔"; }
+
+.actions { display: flex; gap: 8px; }
+
+button {
+    font: inherit;
+    color: inherit;
+    border: 0;
+    background: none;
+    cursor: pointer;
+    border-radius: 8px;
+}
+
+.icone {
+    width: 36px;
+    height: 36px;
+    font-size: 19px;
+    line-height: 1;
+    background: rgb(255 255 255 / .12);
+}
+
+.texte {
+    padding: 7px 13px;
+    font-size: 14.5px;
+    font-weight: 600;
+    background: rgb(255 255 255 / .12);
+}
+
+.icone:hover, .texte:hover { background: rgb(255 255 255 / .2); }
+button:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+
+#terminer {
+    background: var(--accent);
+    color: #fff;
+}
+
+/* Le plateau ---------------------------------------------------------- */
+
+.plateau {
+    position: relative;
+    flex: 1;
+    background: radial-gradient(120% 90% at 50% 0%, var(--tapis), var(--tapis-creux));
+    touch-action: none;          /* le glisser des cartes n'est pas un scroll */
+    user-select: none;
+    overflow: hidden;
+}
+
+.emplacements, .cartes { position: absolute; inset: 0; }
+
+.emplacement, .carte {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: var(--carte-l);
+    height: var(--carte-h);
+    border-radius: var(--rayon);
+    transform: translate(var(--x), var(--y));
+}
+
+/* Creux ou se posent les cartes. */
+.emplacement {
+    border: 1.5px solid var(--tapis-trait);
+    background: rgb(0 0 0 / .1);
+}
+
+/* La fondation rappelle discretement la famille qu'elle attend. */
+.emplacement[data-famille]::after {
+    content: attr(data-symbole);
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    font-size: calc(var(--carte-l) * .44);
+    color: var(--tapis-trait);
+}
+
+/* Le talon vide se signale : c'est le bouton de la redonne. */
+.emplacement[data-role="pioche"].vide::after {
+    content: "↻";
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    font-size: calc(var(--carte-l) * .4);
+    color: var(--tapis-trait);
+}
+
+.emplacement.cible {
+    border-color: color-mix(in srgb, var(--accent) 80%, white);
+    background: rgb(255 255 255 / .14);
+}
+
+/* Les cartes ---------------------------------------------------------- */
+
+.carte {
+    perspective: 900px;
+    transition: transform var(--duree) cubic-bezier(.22, .61, .36, 1);
+    will-change: transform;
+}
+
+.carte.posee { transition: none; }        /* placement initial, sans glissade */
+.carte.saisie { transition: none; z-index: 999; }
+
+.pivot {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transform-style: preserve-3d;
+    transition: transform calc(var(--duree) * 1.4) ease;
+    border-radius: inherit;
+}
+
+.carte.cachee .pivot { transform: rotateY(180deg); }
+
+.face, .dos {
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    backface-visibility: hidden;
+    box-shadow: 0 1px 2px rgb(0 0 0 / .35), 0 3px 8px rgb(0 0 0 / .18);
+}
+
+.face {
+    background: var(--carte-fond);
+    border: 1px solid var(--carte-bord);
+    color: var(--carte-noire);
+    display: grid;
+    padding: calc(var(--carte-l) * .07);
+}
+
+.carte.rouge .face { color: var(--carte-rouge); }
+
+/* Coin lisible meme quand la carte est presque entierement recouverte : au
+ * Klondike on ne voit souvent qu'un bandeau de quelques millimetres. */
+.coin {
+    justify-self: start;
+    align-self: start;
+    line-height: .95;
+    text-align: center;
+    font-weight: 700;
+    font-size: calc(var(--carte-l) * .30);
+    letter-spacing: -.02em;
+}
+
+.coin small {
+    display: block;
+    font-size: .82em;
+    margin-top: .04em;
+}
+
+.centre {
+    position: absolute;
+    right: calc(var(--carte-l) * .1);
+    bottom: calc(var(--carte-l) * .04);
+    font-size: calc(var(--carte-l) * .52);
+    line-height: 1;
+    opacity: .9;
+}
+
+.dos {
+    transform: rotateY(180deg);
+    background:
+        repeating-linear-gradient(45deg, transparent 0 4px, rgb(255 255 255 / .16) 4px 8px),
+        linear-gradient(150deg, var(--dos-fonce), color-mix(in srgb, var(--dos-fonce) 60%, black));
+    border: 1px solid color-mix(in srgb, var(--dos-fonce) 70%, black);
+}
+
+.dos::after {
+    content: "";
+    position: absolute;
+    inset: calc(var(--carte-l) * .1);
+    border: 1.5px solid var(--dos-clair);
+    border-radius: calc(var(--rayon) * .6);
+    opacity: .5;
+}
+
+.carte.prenable { cursor: grab; }
+.carte.saisie { cursor: grabbing; }
+.carte.saisie .face, .carte.saisie .dos { box-shadow: 0 8px 22px rgb(0 0 0 / .45); }
+
+/* Refus d'un coup : une secousse breve, plus lisible qu'un message. */
+@keyframes refus {
+    25% { transform: translate(calc(var(--x) - 5px), var(--y)); }
+    75% { transform: translate(calc(var(--x) + 5px), var(--y)); }
+}
+.carte.refus { animation: refus 200ms; }
+
+/* Annonce, feuilles, reglages ----------------------------------------- */
+
+.annonce {
+    position: fixed;
+    left: 50%;
+    bottom: calc(16px + env(safe-area-inset-bottom));
+    transform: translateX(-50%);
+    margin: 0;
+    padding: 9px 16px;
+    border-radius: 999px;
+    background: rgb(0 0 0 / .78);
+    color: #fff;
+    font-size: 14px;
+    opacity: 0;
+    transition: opacity 200ms;
+    pointer-events: none;
+}
+
+.annonce.visible { opacity: 1; }
+
+.feuille {
+    width: min(430px, calc(100vw - 28px));
+    padding: 22px;
+    border: 0;
+    border-radius: 16px;
+    background: var(--feuille);
+    color: var(--feuille-encre);
+    box-shadow: 0 20px 60px rgb(0 0 0 / .5);
+}
+
+.feuille::backdrop { background: rgb(0 0 0 / .55); }
+.feuille h2 { margin: 0 0 18px; font-size: 21px; }
+.feuille h3 { margin: 22px 0 10px; font-size: 15px; opacity: .7; }
+
+.feuille fieldset {
+    border: 0;
+    padding: 0;
+    margin: 0 0 16px;
+}
+
+.feuille legend {
+    padding: 0;
+    margin-bottom: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    opacity: .7;
+}
+
+.choix { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.choix button {
+    padding: 8px 14px;
+    font-size: 14px;
+    background: rgb(128 128 128 / .16);
+    color: inherit;
+}
+
+.choix button[aria-pressed="true"] {
+    background: var(--accent);
+    color: #fff;
+}
+
+.pastilles button {
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    border-radius: 50%;
+    background: var(--pastille);
+    box-shadow: inset 0 0 0 2px rgb(255 255 255 / .25);
+}
+
+.pastilles button[aria-pressed="true"] {
+    box-shadow: 0 0 0 2px var(--feuille), 0 0 0 4px var(--accent);
+}
+
+.stats {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 7px 16px;
+    margin: 0;
+    font-size: 14.5px;
+}
+
+.stats dt { opacity: .7; }
+.stats dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
+
+.detail { margin: 0 0 20px; opacity: .8; font-size: 15px; }
+
+.pied {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 22px;
+}
+
+.pied .texte { background: rgb(128 128 128 / .16); color: inherit; }
+.pied .primaire { background: var(--accent); color: #fff; }

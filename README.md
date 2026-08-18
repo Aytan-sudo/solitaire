@@ -1,0 +1,139 @@
+# Solitaire
+
+Un Klondike statique, jouable hors ligne, ou **chaque donne a une solution**.
+
+Pioche par 1, redonnes illimitees. Pas de serveur, pas de compilation : des
+fichiers, un dossier, GitHub Pages.
+
+## Ce que la garantie promet, et ce qu'elle ne promet pas
+
+Toutes les donnes proposees ont ete resolues avant d'etre livrees. Aucune
+partie n'est perdue d'avance.
+
+Elle ne promet pas que vous ne pouvez pas vous bloquer. Le solveur voit les
+cartes retournees, vous non : il existe des coups qui condamnent une donne
+pourtant gagnable. La garantie dit *une solution existe*, pas *tous les
+chemins menent a la victoire*. C'est une promesse plus faible que celle d'un
+demineur sans coup de des, et il vaut mieux le dire.
+
+Elle vaut pour les regles annoncees. Une donne gagnable en pioche par 1 ne
+l'est pas forcement en pioche par 3 : un autre mode demanderait son propre
+catalogue.
+
+## Comment la donne est garantie
+
+Le solveur ne tourne jamais dans le navigateur. Prouver qu'une donne est
+*perdue* coute cher — il faut epuiser l'arbre — alors qu'en trouver la
+solution est rapide. On exploite l'asymetrie : `scripts/catalogue.mjs` fait
+tourner des milliers de graines hors ligne et ne garde que celles qu'il
+resout. Le jeu n'a plus qu'a piocher dans la liste.
+
+    npm run catalogue        # ~5 000 donnes, quelques minutes
+
+Deux simplifications rendent le solveur viable, toutes deux liees aux regles
+retenues :
+
+- **Le talon est un ensemble.** En pioche par 1 avec redonnes illimitees, on
+  peut toujours faire defiler le talon jusqu'a la carte voulue. N'importe
+  quelle carte du talon est donc jouable a tout instant : son ordre disparait
+  de la recherche.
+- **Les montees sures ne se discutent pas.** Une carte de rang r ne peut
+  servir dans le tableau qu'aux deux cartes de rang r-1 de couleur opposee ;
+  si ces deux familles sont deja montees jusqu'a r-1, la monter ne coute
+  jamais rien. Ces coups sont joues d'office.
+
+La recherche est une exploration en profondeur avec table de transpositions et
+budget de noeuds. Le budget n'est pas un pis-aller : une donne qui resiste est
+ecartee, et il y a une infinite de graines. Mieux vaut cent donnes trouvees
+vite qu'une seule prouvee a grands frais.
+
+Huit relances courtes avec un ordre de coups bouscule valent nettement mieux
+qu'une seule longue recherche : a temps egal, **87 donnes resolues sur 120
+contre 71**. Une exploration en profondeur qui s'engage dans une mauvaise
+branche y reste jusqu'a epuiser son budget ; deux departs differents tombent
+rarement dans le meme piege.
+
+Le solveur ignore le remonte-fondation, que le jeu autorise. Il est donc
+prudent : il peut echouer sur une donne gagnable, jamais reussir sur une
+perdue. Pour un catalogue, c'est le bon sens de l'erreur.
+
+## Le geste
+
+Pointer Events, pas le glisser-deposer natif de HTML : celui-ci ne fonctionne
+pas au doigt, et c'est au doigt que ce jeu se joue.
+
+Glisser et taper partagent tout. Un appui suivi d'un mouvement est un glisser ;
+le meme appui relache sur place est une tape, qui envoie la carte a la
+meilleure destination legale — fondation d'abord, colonne occupee ensuite,
+colonne vide en dernier. Les deux interrogent la meme liste de coups
+possibles : le clic-clic n'est pas une seconde implementation des regles.
+
+Le glisser vise avec la carte, pas avec le curseur : la cible retenue est celle
+que la carte recouvre le plus. Un doigt masque justement l'endroit qu'il vise.
+
+## Le rendu
+
+Les 52 cartes et les 13 emplacements sont crees une fois, puis deplaces par
+`transform`. Rien n'est ajoute ni retire du document en cours de partie : une
+carte qui change de pile glisse, elle ne disparait pas pour reapparaitre
+ailleurs. L'animation vient de la, et le navigateur n'a jamais a refaire sa
+mise en page.
+
+Aucune image : les cartes sont dessinees en CSS. Cinquante-deux fichiers a
+charger, a mettre en cache et a redessiner pour le theme sombre, contre
+quelques regles de style.
+
+La geometrie est calculee en JavaScript et posee en variables CSS. Le tableau
+du Klondike n'a pas de hauteur bornee, alors chaque colonne resserre son
+empilement quand elle deborde, plutot que de laisser des cartes sortir de
+l'ecran.
+
+## Les fichiers
+
+    js/hasard.js     graine -> melange reproductible, empreinte d'une date
+    js/cartes.js     une carte est un entier de 0 a 51
+    js/regles.js     ce qui se pose sur quoi
+    js/partie.js     etat, coups, retournement, victoire — sans DOM
+    js/donne.js      choix de la donne : catalogue, defi du jour
+    js/rendu.js      geometrie et position de chaque carte
+    js/geste.js      glisser et taper
+    js/ui.js         compteurs, reglages, fin de partie
+    js/storage.js    preferences, statistiques, reprise
+    js/themes.js     theme et couleur du tapis
+    js/app.js        le cablage
+    js/solveur.js    hors ligne uniquement : jamais charge par la page
+    scripts/         moissonneuse du catalogue
+    data/donnes.json les graines garanties
+    tests/           le noyau se teste en Node, sans navigateur
+
+Le moteur est immuable : `jouer(etat, coup)` ne modifie rien, il rend un
+nouvel etat. Un etat pese une soixantaine d'entiers, alors annuler revient a
+garder la copie precedente — pas de coup a inverser, donc pas de coup qu'on
+inverserait mal.
+
+Les piles portent un identifiant court, qui se relit dans un test comme dans
+une URL : `P` pioche, `D` defausse, `C0..C6` colonnes, `F0..F3` fondations.
+
+## Adresses
+
+    ?donne=1234      ouvre une donne precise, pour partager une partie
+    ?defi            ouvre le defi du jour
+
+Une donne demandee par son numero n'est pas forcement au catalogue : le jeu la
+distribue quand meme, en annoncant qu'elle n'est pas garantie.
+
+## Developpement
+
+    npm test         196 verifications
+    npm run serve    http://localhost:8765
+    npm run catalogue  regenere data/donnes.json
+
+Le noyau ne touche pas au DOM et se teste en Node. Le rendu et le geste, eux,
+tournent contre un faux document minimal (`tests/dom.mjs`) qui recoit de vrais
+gestes — appuyer, glisser, relacher. C'est la couche ou une faute ne leve
+aucune exception : une carte qu'on ne peut pas attraper ne fait rien, elle ne
+bouge simplement pas.
+
+`tests/test-catalogue.mjs` tire quinze graines au sort dans le fichier livre,
+les resout a nouveau et rejoue chaque solution dans le moteur. Un catalogue qui
+mentirait serait la pire panne possible : la promesse du jeu tient a lui.
