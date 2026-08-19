@@ -8,7 +8,7 @@
 // solveur tourne hors ligne, a la generation du catalogue. Le navigateur n'a
 // jamais a le telecharger.
 
-const VERSION = 'solitaire-1.0.0';
+const VERSION = 'solitaire-1.1.0';
 
 const COQUILLE = [
     './',
@@ -18,6 +18,7 @@ const COQUILLE = [
     'js/app.js',
     'js/cartes.js',
     'js/donne.js',
+    'js/ecran.js',
     'js/geste.js',
     'js/hasard.js',
     'js/partie.js',

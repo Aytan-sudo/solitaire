@@ -98,6 +98,34 @@ possibles : le clic-clic n'est pas une seconde implementation des regles.
 Le glisser vise avec la carte, pas avec le curseur : la cible retenue est celle
 que la carte recouvre le plus. Un doigt masque justement l'endroit qu'il vise.
 
+## L'ecran
+
+Le navigateur croit avoir affaire a une page qu'on lit, alors qu'il s'agit d'un
+tapis sur lequel on tape. Il zoome au double-tap, et il garde son bandeau.
+
+**Le double-tap ne doit pas zoomer.** Il arrive tout seul des qu'on joue deux
+cartes coup sur coup, et la partie part de travers : les cartes sortent de
+l'ecran, le geste vise a cote. `touch-action: manipulation` regle la question
+partout — sauf sur iPhone, ou Safari zoome quand meme. `js/ecran.js` coupe donc
+le second appui d'une paire rapprochee, ce qui suffit a lui oter l'idee.
+
+Ce que cela coute : couper un appui supprime le clic qui l'aurait suivi. Sur le
+tapis c'est sans consequence — les cartes ecoutent le pointeur, jamais le clic
+— mais un bouton, lui, cesserait de repondre. Les boutons sont donc exclus,
+nommement. Le pincement n'est pas touche non plus : il reste un doigt sur
+l'ecran, et on ne prive personne de la loupe.
+
+**Le plein ecran** se demande depuis les reglages, et ne se retient pas d'une
+partie a l'autre : le rouvrir exige un geste du joueur, et un jeu qui s'y
+jetterait au premier appui au retour serait plus surprenant qu'utile. Le bouton
+suit l'etat reel, pas le dernier clic — on en sort aussi par la touche
+d'echappement ou par un geste du systeme.
+
+L'iPhone n'a pas cette API du tout. Plutot qu'un bouton qui ne ferait rien, le
+reglage dit ou est le vrai plein ecran : l'ecran d'accueil, ou le manifeste
+ouvre le jeu sans bandeau. Et lorsque le jeu y est deja, la section disparait —
+il n'y a plus rien a masquer.
+
 ## Le rendu
 
 Les 52 cartes et les 13 emplacements sont crees une fois, puis deplaces par
@@ -130,6 +158,7 @@ ferait passer sous les colonnes qu'elle survole.
     js/donne.js      choix de la donne : catalogue, defi du jour
     js/rendu.js      geometrie et position de chaque carte
     js/geste.js      glisser et taper
+    js/ecran.js      plein ecran, et le zoom du double-tap qu'on refuse
     js/ui.js         compteurs, reglages, fin de partie
     js/storage.js    preferences, statistiques, reprise
     js/themes.js     theme et couleur du tapis
@@ -157,7 +186,7 @@ distribue quand meme, en annoncant qu'elle n'est pas garantie.
 
 ## Developpement
 
-    npm test         240 verifications
+    npm test         255 verifications
     npm run serve    http://localhost:8765
     npm run catalogue  regenere data/donnes.json
 

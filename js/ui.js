@@ -9,7 +9,7 @@ import { THEMES, TAPIS } from './themes.js';
 // doivent s'accorder — ici, dans package.json et dans le nom du cache du
 // service worker — et un test s'en assure : une version publiee sous un cache
 // deja nomme ne parviendrait jamais aux joueurs qui ont installe le jeu.
-export const VERSION = '1.0.0';
+export const VERSION = '1.1.0';
 
 export const MODES = [
     {
@@ -41,7 +41,7 @@ export function formaterJour(jour) {
 
 const pourcent = (part, total) => (total === 0 ? '—' : `${Math.round(part / total * 100)} %`);
 
-export function creerInterface({ surMode, surTheme, surTapis, surNouvelle, surDefi, surRejouer, surTerminer }) {
+export function creerInterface({ surMode, surTheme, surTapis, surPlein, surNouvelle, surDefi, surRejouer, surTerminer }) {
     const $ = id => document.getElementById(id);
 
     const chrono = $('chrono');
@@ -51,6 +51,8 @@ export function creerInterface({ surMode, surTheme, surTapis, surNouvelle, surDe
     const victoire = $('victoire');
     const terminer = $('terminer');
     const defi = $('defi');
+    const ecran = $('ecran');
+    const aideEcran = $('aide-ecran');
 
     // Choix de theme et de tapis, construits depuis les listes : ajouter une
     // couleur ne demande pas de toucher au document.
@@ -88,6 +90,14 @@ export function creerInterface({ surMode, surTheme, surTapis, surNouvelle, surDe
         choixTapis.append(bouton);
     }
 
+    // Le plein ecran n'est pas un choix parmi d'autres mais une bascule : un
+    // seul bouton, qui se met en creux quand il est actif.
+    const boutonPlein = document.createElement('button');
+    boutonPlein.type = 'button';
+    boutonPlein.textContent = 'Plein écran';
+    boutonPlein.addEventListener('click', () => surPlein());
+    $('choix-ecran').append(boutonPlein);
+
     const cocher = (conteneur, valeur) => {
         for (const bouton of conteneur.children) {
             bouton.setAttribute('aria-pressed', String(bouton.dataset.valeur === valeur));
@@ -119,6 +129,19 @@ export function creerInterface({ surMode, surTheme, surTapis, surNouvelle, surDe
             cocher(choixTheme, preferences.theme);
             cocher(choixTapis, preferences.tapis);
             aideMode.textContent = MODES.find(entree => entree.id === mode).aide;
+        },
+
+        // Trois situations, trois discours. Le navigateur sait le faire ; il ne
+        // sait pas le faire, et le joueur peut s'en passer par l'ecran
+        // d'accueil ; ou le jeu y est deja, et le reglage n'a plus lieu d'etre.
+        majEcran({ disponible, actif, installe }) {
+            ecran.hidden = installe;
+            boutonPlein.hidden = !disponible;
+            boutonPlein.setAttribute('aria-pressed', String(actif));
+            aideEcran.textContent = disponible
+                ? 'Masque le bandeau du navigateur : le jeu prend tout l’écran.'
+                : 'Ce navigateur n’a pas le plein écran. Sur iPhone, il passe par '
+                    + 'l’écran d’accueil : Partager, puis « Sur l’écran d’accueil ».';
         },
 
         majStats(stats, jourFait, ouvert = false) {

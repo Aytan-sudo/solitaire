@@ -77,7 +77,9 @@ check('tous les fichiers de la coquille existent', manquants.length === 0, manqu
 // faute de frappe ici ne fait rien planter, elle rend un bouton inerte.
 const cherches = new Set();
 for (const nom of ['ui.js', 'app.js']) {
-    for (const [, id] of lire(`js/${nom}`).matchAll(/getElementById\('([\w-]+)'\)/g)) cherches.add(id);
+    const source = lire(`js/${nom}`);
+    for (const [, id] of source.matchAll(/getElementById\('([\w-]+)'\)/g)) cherches.add(id);
+    for (const [, id] of source.matchAll(/\$\('([\w-]+)'\)/g)) cherches.add(id);
 }
 const inconnus = [...cherches].filter(id => !page.includes(`id="${id}"`));
 check(`les ${cherches.size} identifiants cherches existent dans la page`,
@@ -99,10 +101,17 @@ check('les cartes et les creux, eux, les recoivent',
 // style ne peut pas le surpasser, et celle qui essaierait mentirait.
 check('la feuille de style ne pretend pas gerer les plans', !/z-index/.test(style));
 
-// Jouer, ce n'est ni lire ni zoomer.
-check('le double-tap ne zoome pas', /touch-action: manipulation/.test(style));
+// Jouer, ce n'est ni lire ni zoomer. La regle vaut pour tout le document et
+// pas seulement pour sa racine : touch-action ne s'herite pas, et Safari ne
+// remonte pas toujours jusqu'a body pour decider du sort d'un appui.
+check('le double-tap ne zoome pas', /\* \{ touch-action: manipulation; \}/.test(style));
 check('le tapis ne se selectionne pas',
     /\.plateau \{[^}]*[^-]user-select: none/s.test(style));
+
+// Le dernier recours contre le zoom d'iPhone, ou la regle de style ne suffit
+// pas : sans cet appel, le double-tap revient et la partie part de travers.
+check('la page coupe elle-meme le double-tap',
+    lire('js/app.js').includes('interdireDoubleTap(document)'));
 
 // Manifeste et icones.
 check('la page declare le manifeste', page.includes('rel="manifest"'));

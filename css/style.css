@@ -81,9 +81,14 @@
 * { box-sizing: border-box; }
 
 /* Un jeu se tape et se glisse, il ne se lit pas : le double-tap ne doit pas
- * zoomer, ce qui arrive des qu'on joue deux cartes coup sur coup. `manipulation`
- * laisse le pincement — on ne prive personne de la loupe. */
-html, body { touch-action: manipulation; }
+ * zoomer, ce qui arrive des qu'on joue deux cartes coup sur coup.
+ * `manipulation` laisse le pincement — on ne prive personne de la loupe.
+ *
+ * Pose sur tout, et pas seulement sur la racine : la propriete ne s'herite
+ * pas, et Safari ne remonte pas toujours jusqu'a body pour decider du sort
+ * d'un appui. Le tapis, lui, va plus loin et refuse tout (voir .plateau) ; le
+ * dernier mot revient de toute facon a js/ecran.js, seul recours sur iPhone. */
+* { touch-action: manipulation; }
 
 body {
     margin: 0;

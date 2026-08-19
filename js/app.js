@@ -10,6 +10,9 @@ import { jourLocal } from './hasard.js';
 import { creerRendu } from './rendu.js';
 import { creerGestes } from './geste.js';
 import { creerInterface, formaterJour } from './ui.js';
+import {
+    interdireDoubleTap, basculerPlein, pleinDisponible, estPlein, estInstalle, surChangementPlein
+} from './ecran.js';
 import * as themes from './themes.js';
 import {
     lirePreferences, ecrirePreferences, lireStats, enregistrerFin, defiFait,
@@ -162,6 +165,14 @@ function appliquerPreferences() {
     ecrirePreferences(preferences);
 }
 
+// Ce que le panneau des reglages a le droit de proposer depend du navigateur,
+// et de l'endroit d'ou le jeu est ouvert.
+const rafraichirEcran = () => ihm.majEcran({
+    disponible: pleinDisponible(),
+    actif: estPlein(),
+    installe: estInstalle()
+});
+
 // Le panneau montre les comptes du mode choisi, celui qu'on jouera au
 // prochain coup de cartes — pas forcement celui de la partie en cours.
 function rafraichirStats() {
@@ -191,6 +202,13 @@ const ihm = creerInterface({
     },
     surTheme: theme => { preferences = { ...preferences, theme }; appliquerPreferences(); },
     surTapis: tapis => { preferences = { ...preferences, tapis }; appliquerPreferences(); },
+    // Le plein ecran ne se retient pas d'une partie a l'autre : le rouvrir
+    // demande un geste du joueur, et un jeu qui s'y jetterait au premier appui
+    // au retour serait plus surprenant qu'utile.
+    surPlein: async () => {
+        if (!await basculerPlein()) ihm.annoncer('Le plein écran a été refusé.');
+        rafraichirEcran();
+    },
     surNouvelle: () => commencer({ graine: graineAuHasard(catalogue) }),
     surDefi: () => commencer({ graine: graineDuJour(catalogue), defi: jourLocal() }),
     surRejouer: () => commencer({ graine: jeu.graine }),
@@ -205,6 +223,11 @@ creerGestes({
     annoncer: ihm.annoncer
 });
 
+// Le zoom du double-tap arrive au pire moment : deux cartes jouees coup sur
+// coup, et le tapis part de travers au milieu de la partie.
+interdireDoubleTap(document);
+surChangementPlein(rafraichirEcran);
+
 // La geometrie depend de la place disponible : rotation, clavier logiciel,
 // fenetre redimensionnee. Le redessin est instantane, sinon les cartes
 // glisseraient a chaque pixel gagne.
@@ -215,6 +238,7 @@ new ResizeObserver(() => {
 
 async function demarrer() {
     appliquerPreferences();
+    rafraichirEcran();
     rendu.mesurer();
     catalogue = await chargerCatalogue();
     rafraichirStats();
