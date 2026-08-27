@@ -5,6 +5,11 @@ Un Klondike statique, jouable hors ligne, ou **chaque donne a une solution**.
 Pioche par 1, redonnes illimitees. Pas de serveur, pas de compilation : des
 fichiers, un dossier, GitHub Pages.
 
+## Version 1.2.1
+
+- les cibles tactiles de l'interface passent à 44 px (boutons d'en-tête,
+  boutons texte, listes déroulantes), conformément à la convention.
+
 ## Version 1.2
 
 - **le son.** Sept timbres de synthese, pas un octet d'audio dans le depot : la

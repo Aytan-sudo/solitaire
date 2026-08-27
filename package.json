@@ -1,6 +1,6 @@
 {
     "name": "solitaire",
-    "version": "1.2.0",
+    "version": "1.2.1",
     "private": true,
     "description": "Klondike statique, donnes garanties gagnables, jouable hors ligne.",
     "type": "module",

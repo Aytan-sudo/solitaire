@@ -139,14 +139,16 @@ button {
 }
 
 .icone {
-    width: 36px;
-    height: 36px;
+    flex: 0 0 auto;
+    width: 44px;
+    height: 44px;
     font-size: 19px;
     line-height: 1;
     background: rgb(255 255 255 / .12);
 }
 
 .texte {
+    min-height: 44px;
     padding: 7px 13px;
     font-size: 14.5px;
     font-weight: 600;
