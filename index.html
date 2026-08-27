@@ -2,19 +2,41 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <title>Solitaire</title>
 <meta name="description" content="Le Klondike, avec des donnes garanties gagnables. Jouable hors ligne.">
-<meta name="theme-color" content="#1d6b4a">
+<meta name="theme-color" content="#1d6b4a" id="couleur-barre">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="assets/icon-180.png">
 <link rel="stylesheet" href="css/style.css">
+<script>
+    // Le tapis se pose avant le premier pixel.
+    //
+    // js/themes.js sait faire tout ceci, mais il arrive avec app.js, module
+    // differe : la page s'afficherait une fraction de seconde en vert clair
+    // avant de virer au theme choisi. Ces quelques lignes-la, et elles seules,
+    // ont le droit de doubler la liste des tapis — tests/test-page.mjs compare
+    // les deux et refuse qu'elles divergent.
+    try {
+        const preferences = JSON.parse(localStorage.getItem('solitaire.preferences') || '{}');
+        if (preferences.theme === 'clair' || preferences.theme === 'sombre') {
+            document.documentElement.dataset.theme = preferences.theme;
+        }
+        const TAPIS = { vert: '#1d6b4a', bleu: '#2b5580', prune: '#63304f', ardoise: '#41474f', brique: '#8a3a2c' };
+        const couleur = TAPIS[preferences.tapis];
+        if (couleur) {
+            document.documentElement.style.setProperty('--tapis-choisi', couleur);
+            document.getElementById('couleur-barre').content = couleur;
+        }
+    } catch { /* le tapis vert reste disponible */ }
+</script>
 </head>
 <body>
 
 <header class="barre">
     <button type="button" id="reglages-ouvrir" class="icone" aria-label="Réglages">⚙</button>
+    <button type="button" id="son-basculer" class="icone" aria-label="Son" aria-pressed="true">♪</button>
     <div class="compteurs">
         <span id="chrono" class="compteur" aria-label="Temps écoulé">0:00</span>
         <span id="coups" class="compteur" aria-label="Coups joués">0</span>
@@ -58,12 +80,25 @@
             <p class="aide" id="aide-ecran"></p>
         </fieldset>
 
+        <fieldset>
+            <legend>Sensations</legend>
+            <label class="option">
+                <input type="checkbox" id="option-sons">
+                <span><strong>Sons feutrés</strong><small>Des notes très courtes suivent les cartes : la pose, le retournement, la montée en fondation.</small></span>
+            </label>
+            <label class="option">
+                <input type="checkbox" id="option-vibration">
+                <span><strong>Toucher haptique</strong><small>Une impulsion brève confirme la pose, et le retournement d’une carte.</small></span>
+            </label>
+        </fieldset>
+
         <h3 id="stats-titre">Parties</h3>
         <dl id="stats" class="stats"></dl>
 
         <p id="version" class="version"></p>
 
         <div class="pied">
+            <button type="button" id="partager" class="texte">Partager</button>
             <button type="button" id="defi" class="texte">Défi du jour</button>
             <button value="fermer" class="texte primaire">Fermer</button>
         </div>
@@ -75,6 +110,7 @@
         <h2 id="victoire-titre">Gagné</h2>
         <p id="victoire-detail" class="detail"></p>
         <div class="pied">
+            <button type="button" id="victoire-partager" class="texte">Partager</button>
             <button value="rejouer" id="victoire-rejouer" class="texte">Rejouer la donne</button>
             <button value="nouvelle" class="texte primaire">Nouvelle partie</button>
         </div>

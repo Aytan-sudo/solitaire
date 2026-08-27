@@ -389,8 +389,49 @@ button:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
     box-shadow: inset 0 0 0 2px rgb(255 255 255 / .25);
 }
 
+/* La pastille choisie garde sa couleur : c'est un echantillon de tapis, pas un
+ * bouton. Sans le rappel du fond, la regle generale des choix la repeindrait en
+ * couleur d'accent — et le joueur ne verrait plus le tapis qu'il a pris. En
+ * theme clair l'accent est justement le vert du tapis, ce qui cachait bien
+ * l'affaire. */
 .pastilles button[aria-pressed="true"] {
+    background: var(--pastille);
     box-shadow: 0 0 0 2px var(--feuille), 0 0 0 4px var(--accent);
+}
+
+/* Les sensations : une case a cocher, son titre, son explication. Toute la
+ * hauteur de la ligne est cliquable — au doigt, viser une case de 22 px ne se
+ * fait pas. */
+.option {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 11px 0;
+    cursor: pointer;
+}
+
+.option + .option { border-top: 1px solid rgb(128 128 128 / .18); }
+.option input { width: 22px; height: 22px; flex: none; accent-color: var(--accent); }
+.option span { display: flex; flex-direction: column; }
+.option strong { font-size: 14.5px; font-weight: 600; }
+.option small { margin-top: 3px; font-size: 12.5px; line-height: 1.4; opacity: .62; }
+
+/* Le son coupe se lit d'un coup d'oeil : la note palit et se barre. Le trait
+ * est dessine ici plutot qu'ecrit dans le glyphe — la note barree d'Unicode se
+ * compose d'un signe combinant, que la moitie des telephones place de travers. */
+#son-basculer { position: relative; }
+#son-basculer[aria-pressed="false"] { opacity: .5; }
+
+#son-basculer[aria-pressed="false"]::after {
+    content: "";
+    position: absolute;
+    left: 7px;
+    right: 7px;
+    top: calc(50% - 1px);
+    height: 2px;
+    border-radius: 1px;
+    background: currentColor;
+    transform: rotate(-32deg);
 }
 
 .aide {
@@ -423,8 +464,11 @@ button:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
     font-variant-numeric: tabular-nums;
 }
 
+/* Trois boutons ne tiennent pas toujours sur une ligne de telephone : ils
+ * passent a la ligne plutot que de deborder de la feuille. */
 .pied {
     display: flex;
+    flex-wrap: wrap;
     justify-content: flex-end;
     gap: 8px;
     margin-top: 22px;

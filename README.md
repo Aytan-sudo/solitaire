@@ -5,6 +5,54 @@ Un Klondike statique, jouable hors ligne, ou **chaque donne a une solution**.
 Pioche par 1, redonnes illimitees. Pas de serveur, pas de compilation : des
 fichiers, un dossier, GitHub Pages.
 
+## Version 1.2
+
+- **le son.** Sept timbres de synthese, pas un octet d'audio dans le depot : la
+  pose, le retournement, la pioche, la redonne, le refus, la victoire — et la
+  montee en fondation, dont la hauteur suit le rang de la carte. Ranger une
+  famille se termine donc sur une montee de presque une octave, qu'on entend sans
+  regarder la pile. Tout vit au-dessus de 300 Hz : sous ce seuil, un
+  haut-parleur de telephone ne restitue a peu pres rien, et la note part sans
+  arriver. `tests/test-son.mjs` joue les timbres contre un contexte audio
+  factice et garde le plancher ;
+- vibration breve en option, et un bouton dans le bandeau pour couper le son
+  sans ouvrir les reglages ;
+- **partage** d'un resultat en trois lignes et d'un lien qui refabrique la
+  donne — jamais le resultat, jamais la solution ;
+- le defi du jour s'ouvre par `?jour=AAAA-MM-JJ`, ce qui permet de rouvrir celui
+  d'hier. `?defi` reste compris. Un defi rejoue apres coup redonne bien sa
+  grille, mais hors serie : seule la partie jouee le jour meme compte ;
+- **le theme se pose avant le premier pixel.** Il vivait dans `app.js`, module
+  differe : la page s'affichait une fraction de seconde en vert clair avant de
+  virer au tapis choisi. Un script en tete de page le lit desormais avant le
+  premier rendu ;
+- **le service worker passe au reseau d'abord.** Le cache d'abord laissait le
+  joueur sur l'ancienne version tant qu'il ne vidait pas son navigateur, et en
+  local — tous les jeux servant sur la meme origine — il finissait par servir
+  ses propres fichiers a un autre jeu. Le cache ne passe plus devant que lorsque
+  le reseau ne repond pas ;
+- `user-scalable=no`, l'icone iOS entre dans la coquille hors ligne, et
+  `.github/workflows/tests.yml` lance `npm test` et `npm run check` a chaque
+  poussee ;
+- la pastille du tapis choisi garde sa couleur au lieu de virer au vert
+  d'accent. En theme clair l'accent est justement ce vert, ce qui cachait bien
+  l'affaire.
+
+## Version 1.1
+
+- le plein ecran se demande depuis les reglages, utile sur tablette ;
+- le double-tap ne zoome plus, iPhone compris : `js/ecran.js` coupe le second
+  appui d'une paire rapprochee, boutons exclus nommement.
+
+## Version 1.0
+
+- le Klondike statique et ses donnes garanties gagnables ;
+- le mode ouvert, toutes cartes visibles ;
+- quatre pannes du geste reparees — le talon vide qui ne repondait plus, la
+  carte glissee qui passait sous les colonnes, la selection tiree en travers du
+  tapis, le pointeur non capture ;
+- le numero de version au bas des reglages.
+
 ## Ce que la garantie promet, et ce qu'elle ne promet pas
 
 Toutes les donnes proposees ont ete resolues avant d'etre livrees. Aucune
@@ -105,15 +153,21 @@ tapis sur lequel on tape. Il zoome au double-tap, et il garde son bandeau.
 
 **Le double-tap ne doit pas zoomer.** Il arrive tout seul des qu'on joue deux
 cartes coup sur coup, et la partie part de travers : les cartes sortent de
-l'ecran, le geste vise a cote. `touch-action: manipulation` regle la question
-partout — sauf sur iPhone, ou Safari zoome quand meme. `js/ecran.js` coupe donc
-le second appui d'une paire rapprochee, ce qui suffit a lui oter l'idee.
+l'ecran, le geste vise a cote. Trois parades empilees, parce qu'aucune ne
+couvre tout le monde : `user-scalable=no` dans la balise de viewport, que la
+plupart des navigateurs respectent ; `touch-action: manipulation`, qui regle la
+question partout ailleurs ; et, pour iPhone, ou Safari ignore la balise et zoome
+quand meme, `js/ecran.js` coupe le second appui d'une paire rapprochee.
 
 Ce que cela coute : couper un appui supprime le clic qui l'aurait suivi. Sur le
 tapis c'est sans consequence — les cartes ecoutent le pointeur, jamais le clic
 — mais un bouton, lui, cesserait de repondre. Les boutons sont donc exclus,
-nommement. Le pincement n'est pas touche non plus : il reste un doigt sur
-l'ecran, et on ne prive personne de la loupe.
+nommement. Cela coute aussi la loupe : `user-scalable=no` retire le pincement
+la ou il est respecte. C'est l'arbitrage retenu pour toute la collection — un
+tapis n'est pas une page qu'on lit, et un zoom accidentel en cours de partie
+coute plus cher qu'un agrandissement dont on se passe. Sur iPhone, ou la balise
+est ignoree, le pincement reste possible : la parade JavaScript ne s'occupe que
+du double-tap, et laisse passer tout geste ou un doigt reste sur l'ecran.
 
 **Le plein ecran** se demande depuis les reglages, et ne se retient pas d'une
 partie a l'autre : le rouvrir exige un geste du joueur, et un jeu qui s'y
@@ -125,6 +179,42 @@ L'iPhone n'a pas cette API du tout. Plutot qu'un bouton qui ne ferait rien, le
 reglage dit ou est le vrai plein ecran : l'ecran d'accueil, ou le manifeste
 ouvre le jeu sans bandeau. Et lorsque le jeu y est deja, la section disparait —
 il n'y a plus rien a masquer.
+
+## Le son
+
+Synthese WebAudio, pas un octet d'audio dans le depot. Sept timbres tres courts
+et un volume bas par principe : une partie de Klondike, c'est deux ou trois
+cents gestes, et un son qu'on remarque au dixieme est insupportable au centieme.
+La pioche est le plus discret de tous — on fait defiler le talon vingt fois de
+suite, cela doit rester un frottement et pas un metronome.
+
+La seule idee de cette gamme est la fondation : **sa hauteur suit le rang de la
+carte**, l'As en bas et le Roi presque une octave au-dessus. Ranger une famille
+se termine donc sur une montee, et le deroule final fait entendre les piles
+grimper sans qu'on ait a les regarder.
+
+Deux pieges, tous deux invisibles depuis un ordinateur — ils ne levent aucune
+erreur, le son part simplement sans arriver :
+
+- **le plancher de 300 Hz.** Un haut-parleur de telephone ne restitue a peu pres
+  rien en dessous, et l'oreille y est de surcroit bien moins sensible a faible
+  volume. Le jeu se voulant mobile d'abord, c'est un defaut et pas un reglage :
+  `tests/test-son.mjs` fait tourner le vrai module contre un contexte audio
+  factice et releve toutes les hauteurs emises, cibles de rampes comprises. Le
+  refus ne dit donc pas non par la profondeur mais par la chute — c'est le
+  mouvement qui porte le sens, et le mouvement survit au haut-parleur ;
+- **le deblocage au geste.** iOS ne laisse demarrer un contexte audio que depuis
+  un evenement d'activation. Poser une carte comme la taper se conclut sur
+  `pointerup`, qui en est un ; mais le glisser se suit dans `pointermove`, qui
+  n'en est pas un, et il suffirait qu'un son y naisse un jour pour que le jeu
+  devienne muet au doigt. Le contexte se prepare donc des le premier poser de
+  doigt, avant que le jeu n'ait une note a demander.
+
+Le son se coupe depuis le bandeau, sans ouvrir les reglages, et se tait tout
+seul quand l'onglet passe a l'arriere-plan. La vibration est un reglage a part :
+un jeu muet reste un jeu qui vibre, si on le lui a demande. Elle se tait pendant
+le deroule final — entendre cinquante montees grimper est agreable, les sentir
+toutes vibrer ne l'est pas.
 
 ## Le rendu
 
@@ -159,6 +249,8 @@ ferait passer sous les colonnes qu'elle survole.
     js/rendu.js      geometrie et position de chaque carte
     js/geste.js      glisser et taper
     js/ecran.js      plein ecran, et le zoom du double-tap qu'on refuse
+    js/son.js        sept timbres de synthese, aucun fichier audio
+    js/partage.js    le lien d'une donne, le message d'un resultat
     js/ui.js         compteurs, reglages, fin de partie
     js/storage.js    preferences, statistiques, reprise
     js/themes.js     theme et couleur du tapis
@@ -178,17 +270,39 @@ une URL : `P` pioche, `D` defausse, `C0..C6` colonnes, `F0..F3` fondations.
 
 ## Adresses
 
-    ?donne=1234      ouvre une donne precise, pour partager une partie
-    ?defi            ouvre le defi du jour
+    ?donne=1234        ouvre une donne precise, pour partager une partie
+    ?jour=2026-08-27   ouvre le defi de ce jour-la
+    ?defi              ouvre le defi d'aujourd'hui (l'adresse d'origine)
 
 Une donne demandee par son numero n'est pas forcement au catalogue : le jeu la
 distribue quand meme, en annoncant qu'elle n'est pas garantie.
 
+Un defi rouvert plus tard redonne bien sa grille — c'est tout l'interet d'un
+lien qu'on partage — mais hors serie : seule la partie jouee le jour meme compte
+au palmares du defi.
+
+Le bouton **Partager** copie trois lignes et un lien :
+
+    Solitaire — défi du 27/08/2026
+    Gagné en 4:12 · 137 coups
+    ♠️♥️♦️♣️
+    https://aytan-sudo.github.io/solitaire/?jour=2026-08-27
+
+Le lien porte de quoi refabriquer la donne, et rien d'autre : ni le temps, ni
+les coups, ni la solution. Celui qui l'ouvre commence a zero, avec les memes
+cartes. Un test le verifie, parce que c'est le genre de promesse qu'on casse
+sans s'en apercevoir.
+
 ## Developpement
 
-    npm test         255 verifications
-    npm run serve    http://localhost:8765
+    npm test         304 verifications
+    npm run check    node --check sur chaque module
+    npm run serve    http://localhost:8769
     npm run catalogue  regenere data/donnes.json
+
+Un port par jeu, et pas le meme pour tous : servis sur une origine commune, les
+jeux partageraient leur `localStorage`, la portee de leur service worker et
+leurs caches — de quoi voir un jeu servir ses propres fichiers a un autre.
 
 Le noyau ne touche pas au DOM et se teste en Node. Le rendu et le geste, eux,
 tournent contre un faux document minimal (`tests/dom.mjs`) qui recoit de vrais

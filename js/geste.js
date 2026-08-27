@@ -33,7 +33,7 @@ function recouvrement(a, b) {
     return l > 0 && h > 0 ? l * h : 0;
 }
 
-export function creerGestes({ plateau, rendu, lire, jouer, annoncer }) {
+export function creerGestes({ plateau, rendu, lire, jouer, annoncer, refuser = carte => rendu.refuser(carte) }) {
     let saisie = null;
 
     // La capture garde le pointeur meme si le doigt sort du tapis : sans elle,
@@ -140,7 +140,7 @@ export function creerGestes({ plateau, rendu, lire, jouer, annoncer }) {
             fin();
             const vers = meilleureDestination(etat, de, index);
             if (vers) jouer({ type: 'deplacer', de, index, vers });
-            else rendu.refuser(cartes[0]);
+            else refuser(cartes[0]);
             return;
         }
 

@@ -1,12 +1,13 @@
 {
     "name": "solitaire",
-    "version": "1.1.0",
+    "version": "1.2.0",
     "private": true,
     "description": "Klondike statique, donnes garanties gagnables, jouable hors ligne.",
     "type": "module",
     "scripts": {
-        "test": "node tests/test-cartes.mjs && node tests/test-regles.mjs && node tests/test-partie.mjs && node tests/test-solveur.mjs && node tests/test-donne.mjs && node tests/test-catalogue.mjs && node tests/test-storage.mjs && node tests/test-geste.mjs && node tests/test-ecran.mjs && node tests/test-page.mjs",
-        "serve": "python3 -m http.server 8765",
+        "test": "node tests/test-cartes.mjs && node tests/test-regles.mjs && node tests/test-partie.mjs && node tests/test-solveur.mjs && node tests/test-donne.mjs && node tests/test-catalogue.mjs && node tests/test-storage.mjs && node tests/test-partage.mjs && node tests/test-son.mjs && node tests/test-geste.mjs && node tests/test-ecran.mjs && node tests/test-page.mjs",
+        "check": "node --check js/app.js && node --check js/cartes.js && node --check js/donne.js && node --check js/ecran.js && node --check js/geste.js && node --check js/hasard.js && node --check js/partage.js && node --check js/partie.js && node --check js/regles.js && node --check js/rendu.js && node --check js/solveur.js && node --check js/son.js && node --check js/storage.js && node --check js/themes.js && node --check js/ui.js && node --check sw.js",
+        "serve": "python3 -m http.server 8769",
         "catalogue": "node scripts/catalogue.mjs --nombre 5000 --sortie data/donnes.json"
     }
 }

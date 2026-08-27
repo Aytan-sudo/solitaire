@@ -35,6 +35,14 @@ export function jourLocal(date = new Date()) {
     return `${date.getFullYear()}-${mois}-${jour}`;
 }
 
+// L'inverse : une date lue dans une adresse redevient une date. Midi plutot que
+// minuit, parce qu'un changement d'heure peut faire disparaitre minuit — et un
+// defi du 29 mars qui ouvrirait la grille du 28 serait une panne muette.
+export function depuisJourLocal(jour) {
+    const [annee, mois, numero] = jour.split('-').map(Number);
+    return new Date(annee, mois - 1, numero, 12);
+}
+
 // FNV-1a : une date lisible devient un entier, de facon stable dans le temps.
 export function empreinte(texte) {
     let h = 0x811C9DC5;

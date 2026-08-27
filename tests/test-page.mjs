@@ -113,6 +113,50 @@ check('le tapis ne se selectionne pas',
 check('la page coupe elle-meme le double-tap',
     lire('js/app.js').includes('interdireDoubleTap(document)'));
 
+// Le theme, avant le premier pixel.
+//
+// js/themes.js sait poser le tapis, mais il arrive avec app.js, module differe :
+// la page s'afficherait une fraction de seconde en vert clair avant de virer au
+// theme choisi. Le script en tete de page corrige ce clignotement — au prix
+// d'une seconde liste de tapis, que rien n'oblige a suivre la premiere. Ce
+// test-la, si.
+const entete = page.slice(0, page.indexOf('</head>'));
+check('le theme se pose avant le premier rendu',
+    entete.includes('<script>') && entete.includes('solitaire.preferences')
+    && entete.includes('documentElement.dataset.theme'));
+check('la barre d adresse est joignable par son identifiant', page.includes('id="couleur-barre"'));
+
+const tapisDeLaPage = Object.fromEntries(
+    [...entete.matchAll(/(\w+): '(#[0-9a-f]{6})'/g)].map(([, id, couleur]) => [id, couleur]));
+const tapisDuModule = Object.fromEntries(
+    [...lire('js/themes.js').matchAll(/id: '(\w+)', libelle: '[^']*', couleur: '(#[0-9a-f]{6})'/g)]
+        .map(([, id, couleur]) => [id, couleur]));
+// Le garde-fou du garde-fou : deux relevees vides s'accorderaient tres bien.
+check('les tapis de l entete et ceux de themes.js s accordent',
+    Object.keys(tapisDuModule).length === 5
+    && JSON.stringify(tapisDeLaPage) === JSON.stringify(tapisDuModule),
+    `${JSON.stringify(tapisDeLaPage)} vs ${JSON.stringify(tapisDuModule)}`);
+
+// Jouer, ce n'est pas lire : le navigateur n'a aucune raison de zoomer sur un
+// tapis. iOS ignore la balise — d'ou js/ecran.js — mais les autres l'ecoutent.
+check('la page refuse le zoom du navigateur', page.includes('user-scalable=no'));
+
+// Reseau d'abord. Le cache d'abord laissait le joueur sur l'ancienne version
+// jusqu'a ce qu'il vide son navigateur, et faisait servir en local les fichiers
+// d'un jeu a un autre — tous partagent l'origine localhost.
+const surFetch = worker.slice(worker.indexOf("addEventListener('fetch'"));
+check('le service worker va au reseau avant le cache',
+    surFetch.indexOf('fetch(evenement.request)') < surFetch.indexOf('caches.match'));
+check('le service worker garde le cache pour le hors-ligne',
+    /catch\(\(\) =>[\s\S]*caches\.match/.test(surFetch));
+check('le service worker met en cache l icone iOS', coquille.includes('assets/icon-180.png'));
+
+// Le defi s'ouvre par la date, et l'ancienne adresse continue de marcher : un
+// lien deja partage ne doit pas tomber en panne.
+const cablage = lire('js/app.js');
+check('le defi s ouvre par ?jour=', cablage.includes("parametres.get('jour')"));
+check('l ancienne adresse ?defi reste comprise', cablage.includes("parametres.has('defi')"));
+
 // Manifeste et icones.
 check('la page declare le manifeste', page.includes('rel="manifest"'));
 check('la page declare la feuille de style', page.includes('css/style.css'));

@@ -8,7 +8,12 @@ const CLE_PREFERENCES = 'solitaire.preferences';
 const CLE_STATS = 'solitaire.stats';
 const CLE_PARTIE = 'solitaire.partie';
 
-export const PREFERENCES_PAR_DEFAUT = { theme: 'auto', tapis: 'vert', ouvert: false };
+// Sons et vibration allumes d'entree : un jeu muet ne donne pas envie qu'on
+// aille chercher son interrupteur, alors que le couper vient tout seul a qui
+// n'en veut pas. Le bouton de la barre est la pour ca.
+export const PREFERENCES_PAR_DEFAUT = {
+    theme: 'auto', tapis: 'vert', ouvert: false, sons: true, vibration: true
+};
 
 export const STATS_PAR_DEFAUT = {
     jouees: 0,

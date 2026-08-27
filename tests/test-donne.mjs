@@ -4,7 +4,7 @@
 
 import { counter } from './harness.mjs';
 import { EPOQUE, numeroDuJour, graines, graineDuJour, graineAuHasard, estGarantie, niveauDe } from '../js/donne.js';
-import { alea } from '../js/hasard.js';
+import { alea, jourLocal, depuisJourLocal } from '../js/hasard.js';
 
 const { check, report } = counter();
 console.log('\nDonne\n');
@@ -53,6 +53,21 @@ check('le numero du jour avance de un par jour',
     numeroDuJour(new Date(2026, 7, 18)) - numeroDuJour(new Date(2026, 7, 17)) === 1);
 check('le changement d heure ne saute pas un jour',
     numeroDuJour(new Date(2026, 2, 30)) - numeroDuJour(new Date(2026, 2, 29)) === 1);
+
+// La date lue dans l'adresse. `?jour=2026-08-27` doit rendre exactement la
+// grille du 27 aout, et pas celle de la veille : c'est tout l'interet d'un lien
+// qu'on partage le soir et que l'autre ouvre le lendemain.
+check('une date ecrite se relit telle quelle',
+    [...Array(400).keys()].every(n => {
+        const date = new Date(2026, 0, 1 + n, 12);
+        return jourLocal(depuisJourLocal(jourLocal(date))) === jourLocal(date);
+    }));
+check('un jour dit par son texte donne la meme donne que sa date',
+    graineDuJour(catalogue, depuisJourLocal('2026-08-27'))
+        === graineDuJour(catalogue, new Date(2026, 7, 27)));
+check('le passage a l heure d ete ne recule pas d un jour',
+    jourLocal(depuisJourLocal('2026-03-29')) === '2026-03-29'
+    && jourLocal(depuisJourLocal('2026-10-25')) === '2026-10-25');
 
 // Tirage au hasard et appartenance.
 const tirage = alea(4);

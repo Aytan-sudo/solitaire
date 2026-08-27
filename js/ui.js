@@ -9,7 +9,7 @@ import { THEMES, TAPIS } from './themes.js';
 // doivent s'accorder — ici, dans package.json et dans le nom du cache du
 // service worker — et un test s'en assure : une version publiee sous un cache
 // deja nomme ne parviendrait jamais aux joueurs qui ont installe le jeu.
-export const VERSION = '1.1.0';
+export const VERSION = '1.2.0';
 
 export const MODES = [
     {
@@ -41,7 +41,7 @@ export function formaterJour(jour) {
 
 const pourcent = (part, total) => (total === 0 ? '—' : `${Math.round(part / total * 100)} %`);
 
-export function creerInterface({ surMode, surTheme, surTapis, surPlein, surNouvelle, surDefi, surRejouer, surTerminer }) {
+export function creerInterface({ surMode, surTheme, surTapis, surSensation, surPlein, surNouvelle, surDefi, surRejouer, surTerminer, surPartager }) {
     const $ = id => document.getElementById(id);
 
     const chrono = $('chrono');
@@ -53,6 +53,9 @@ export function creerInterface({ surMode, surTheme, surTapis, surPlein, surNouve
     const defi = $('defi');
     const ecran = $('ecran');
     const aideEcran = $('aide-ecran');
+    const sonBouton = $('son-basculer');
+    const optionSons = $('option-sons');
+    const optionVibration = $('option-vibration');
 
     // Choix de theme et de tapis, construits depuis les listes : ajouter une
     // couleur ne demande pas de toucher au document.
@@ -90,6 +93,14 @@ export function creerInterface({ surMode, surTheme, surTapis, surPlein, surNouve
         choixTapis.append(bouton);
     }
 
+    // Les sensations. Le bouton de la barre et la case des reglages disent la
+    // meme chose : couper le son ne doit pas demander d'ouvrir un panneau au
+    // milieu d'une partie, mais il faut bien pouvoir le retrouver ou tout le
+    // reste se regle.
+    sonBouton.addEventListener('click', () => surSensation('sons', sonBouton.getAttribute('aria-pressed') === 'false'));
+    optionSons.addEventListener('change', () => surSensation('sons', optionSons.checked));
+    optionVibration.addEventListener('change', () => surSensation('vibration', optionVibration.checked));
+
     // Le plein ecran n'est pas un choix parmi d'autres mais une bascule : un
     // seul bouton, qui se met en creux quand il est actif.
     const boutonPlein = document.createElement('button');
@@ -110,6 +121,11 @@ export function creerInterface({ surMode, surTheme, surTapis, surPlein, surNouve
     $('nouvelle').addEventListener('click', () => surNouvelle());
     terminer.addEventListener('click', () => surTerminer());
     defi.addEventListener('click', () => { reglages.close(); surDefi(); });
+
+    // Partager ne ferme pas la feuille : sur telephone, le systeme pose sa
+    // propre feuille par-dessus, et la refermer doit ramener la ou on etait.
+    $('partager').addEventListener('click', () => surPartager());
+    $('victoire-partager').addEventListener('click', () => surPartager());
     victoire.addEventListener('close', () => {
         if (victoire.returnValue === 'rejouer') surRejouer();
         else if (victoire.returnValue === 'nouvelle') surNouvelle();
@@ -129,6 +145,13 @@ export function creerInterface({ surMode, surTheme, surTapis, surPlein, surNouve
             cocher(choixTheme, preferences.theme);
             cocher(choixTapis, preferences.tapis);
             aideMode.textContent = MODES.find(entree => entree.id === mode).aide;
+
+            optionSons.checked = preferences.sons;
+            optionVibration.checked = preferences.vibration;
+            // Le glyphe ne change pas : c'est la feuille de style qui le
+            // barre. Une note barree en Unicode se compose d'un signe
+            // combinant, que la moitie des telephones dessine de travers.
+            sonBouton.setAttribute('aria-pressed', String(preferences.sons));
         },
 
         // Trois situations, trois discours. Le navigateur sait le faire ; il ne
