@@ -84,4 +84,15 @@ check('une partie illisible vaut absence de partie', S.lirePartie() === null);
 check('oublier une partie ne leve pas', (() => { S.oublierPartie(); return true; })());
 refuse = false;
 
+// Le compteur de coups du tampon Logique : il vit dans l'espace du joueur,
+// repart a zero chaque jour, et ne tourne pas en mode invite.
+const coffrePasseport = new Map();
+const espacePasseport = { getItem: cle => coffrePasseport.get(cle) ?? null, setItem: (cle, valeur) => coffrePasseport.set(cle, String(valeur)) };
+check('passeport : en mode invite, rien n est compte', S.compterCoupPasseport('2026-09-15') === null);
+for (let i = 0; i < 49; i++) S.compterCoupPasseport('2026-09-15', espacePasseport);
+check('passeport : le cinquantieme coup du jour atteint cinquante', S.compterCoupPasseport('2026-09-15', espacePasseport) === 50);
+check('passeport : le lendemain, on repart de un', S.compterCoupPasseport('2026-09-16', espacePasseport) === 1);
+coffrePasseport.set('solitaire.passeport', '{casse');
+check('passeport : un compteur illisible repart proprement', S.compterCoupPasseport('2026-09-16', espacePasseport) === 1);
+
 report();

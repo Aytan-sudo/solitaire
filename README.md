@@ -5,6 +5,15 @@ Un Klondike statique, jouable hors ligne, ou **chaque donne a une solution**.
 Pioche par 1, redonnes illimitees. Pas de serveur, pas de compilation : des
 fichiers, un dossier, GitHub Pages.
 
+## Version 1.3.0 — Le passeport commun
+
+Ouvert depuis le hub avec un passeport, le jeu range préférences, statistiques et
+partie en cours dans l’espace du joueur ; en mode invité, rien ne change. Une
+partie gagnée donne le tampon **Logique** tout de suite ; sinon, le cinquantième
+coup joué dans la journée le donne aussi, sur une ou plusieurs donnes. Le
+bandeau du passeport ramène au hub. Les fichiers `commun/` viennent du hub et
+sont précachés.
+
 ## Version 1.2.1
 
 - les cibles tactiles de l'interface passent à 44 px (boutons d'en-tête,

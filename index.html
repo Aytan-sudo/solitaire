@@ -10,6 +10,9 @@
 <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="assets/icon-180.png">
 <link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="commun/passeport.css">
+<script src="commun/passeport.js"></script>
+<script src="commun/liaison.js" defer></script>
 <script>
     // Le tapis se pose avant le premier pixel.
     //
@@ -18,8 +21,10 @@
     // avant de virer au theme choisi. Ces quelques lignes-la, et elles seules,
     // ont le droit de doubler la liste des tapis — tests/test-page.mjs compare
     // les deux et refuse qu'elles divergent.
+    // Ouvert depuis le hub, le jeu lit les preferences du passeport du joueur.
     try {
-        const preferences = JSON.parse(localStorage.getItem('solitaire.preferences') || '{}');
+        const magasin = Passeport.stockageJeu('solitaire') || localStorage;
+        const preferences = JSON.parse(magasin.getItem('solitaire.preferences') || '{}');
         if (preferences.theme === 'clair' || preferences.theme === 'sombre') {
             document.documentElement.dataset.theme = preferences.theme;
         }
@@ -33,6 +38,8 @@
 </script>
 </head>
 <body>
+
+<div class="passeport-ruban" data-passeport-ruban data-jeu="solitaire" data-consigne="Tampon : une partie gagnée ou 50 coups"></div>
 
 <header class="barre">
     <button type="button" id="reglages-ouvrir" class="icone" aria-label="Réglages">⚙</button>

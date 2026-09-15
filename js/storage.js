@@ -7,6 +7,12 @@
 const CLE_PREFERENCES = 'solitaire.preferences';
 const CLE_STATS = 'solitaire.stats';
 const CLE_PARTIE = 'solitaire.partie';
+const CLE_PASSEPORT = 'solitaire.passeport';
+
+// Ouvert depuis le hub avec un passeport, le jeu range tout dans l'espace du
+// joueur ; en mode invite, dans localStorage, comme avant.
+const passeport = globalThis.Passeport?.stockageJeu('solitaire') ?? null;
+const magasin = () => passeport ?? localStorage;
 
 // Sons et vibration allumes d'entree : un jeu muet ne donne pas envie qu'on
 // aille chercher son interrupteur, alors que le couper vient tout seul a qui
@@ -26,7 +32,7 @@ export const STATS_PAR_DEFAUT = {
 
 function lire(cle, defaut) {
     try {
-        const brut = localStorage.getItem(cle);
+        const brut = magasin().getItem(cle);
         if (!brut) return { ...defaut };
         return { ...defaut, ...JSON.parse(brut) };
     } catch {
@@ -36,7 +42,7 @@ function lire(cle, defaut) {
 
 function ecrire(cle, valeur) {
     try {
-        localStorage.setItem(cle, JSON.stringify(valeur));
+        magasin().setItem(cle, JSON.stringify(valeur));
         return true;
     } catch {
         return false;
@@ -91,7 +97,7 @@ export const sauverPartie = partie => ecrire(CLE_PARTIE, partie);
 
 export function lirePartie() {
     try {
-        const brut = localStorage.getItem(CLE_PARTIE);
+        const brut = magasin().getItem(CLE_PARTIE);
         if (!brut) return null;
         const partie = JSON.parse(brut);
         return partie?.etat?.colonnes?.length === 7 ? partie : null;
@@ -100,6 +106,18 @@ export function lirePartie() {
     }
 }
 
+// Le tampon Logique du hub recompense une partie gagnee, ou l'effort : cinquante
+// coups joues dans la journee, sur une ou plusieurs donnes. Renvoie le compte du
+// jour, ou null en mode invite, ou rien ne compte.
+export function compterCoupPasseport(jour, coffre = passeport) {
+    if (!coffre) return null;
+    let compte = null;
+    try { compte = JSON.parse(coffre.getItem(CLE_PASSEPORT)); } catch { /* compteur illisible : on repart */ }
+    const coups = compte?.jour === jour && Number.isInteger(compte.coups) ? compte.coups + 1 : 1;
+    try { coffre.setItem(CLE_PASSEPORT, JSON.stringify({ jour, coups })); } catch { /* le passeport signale l'echec */ }
+    return coups;
+}
+
 export function oublierPartie() {
-    try { localStorage.removeItem(CLE_PARTIE); } catch { /* rien a faire */ }
+    try { magasin().removeItem(CLE_PARTIE); } catch { /* rien a faire */ }
 }

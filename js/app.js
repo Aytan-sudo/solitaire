@@ -21,7 +21,8 @@ import {
 import * as themes from './themes.js';
 import {
     lirePreferences, ecrirePreferences, lireStats, enregistrerFin, defiFait,
-    sauverPartie, lirePartie, oublierPartie
+    sauverPartie, lirePartie, oublierPartie,
+    compterCoupPasseport
 } from './storage.js';
 
 const plateau = document.getElementById('plateau');
@@ -125,7 +126,16 @@ function jouer(coup) {
     demarrerChrono();
     rendu.dessiner(jeu.etat);
     apresCoup();
+    noterPasseport();
     return true;
+}
+
+// Le tampon Logique du passeport : une partie gagnee le donne tout de suite ;
+// sinon, le cinquantieme coup joue dans la journee. En mode invite, rien ne compte.
+function noterPasseport() {
+    const joueur = globalThis.Passeport;
+    const coups = compterCoupPasseport(joueur?.jourLocal());
+    if (coups !== null) joueur.noter('solitaire', coups, gagnee(jeu.etat));
 }
 
 // Sensations -----------------------------------------------------------
