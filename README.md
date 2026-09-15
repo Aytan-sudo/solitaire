@@ -5,6 +5,11 @@ Un Klondike statique, jouable hors ligne, ou **chaque donne a une solution**.
 Pioche par 1, redonnes illimitees. Pas de serveur, pas de compilation : des
 fichiers, un dossier, GitHub Pages.
 
+## Version 1.3.1 — Passeport 1.6.0
+
+Module commun du passeport 1.6.0 : Polyominos et Mosaïcomino rejoignent le thème
+Logique. Rien ne change dans le jeu.
+
 ## Version 1.3.0 — Le passeport commun
 
 Ouvert depuis le hub avec un passeport, le jeu range préférences, statistiques et
