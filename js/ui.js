@@ -9,7 +9,7 @@ import { THEMES, TAPIS } from './themes.js';
 // doivent s'accorder — ici, dans package.json et dans le nom du cache du
 // service worker — et un test s'en assure : une version publiee sous un cache
 // deja nomme ne parviendrait jamais aux joueurs qui ont installe le jeu.
-export const VERSION = '1.3.2';
+export const VERSION = '1.3.3';
 
 export const MODES = [
     {
