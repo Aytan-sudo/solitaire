@@ -14,7 +14,7 @@
 // solveur tourne hors ligne, a la generation du catalogue. Le navigateur n'a
 // jamais a le telecharger.
 
-const VERSION = 'solitaire-1.3.3';
+const VERSION = 'solitaire-1.3.4';
 
 const COQUILLE = [
     './',

@@ -5,6 +5,12 @@ Un Klondike statique, jouable hors ligne, ou **chaque donne a une solution**.
 Pioche par 1, redonnes illimitees. Pas de serveur, pas de compilation : des
 fichiers, un dossier, GitHub Pages.
 
+## Version 1.3.4 — Passeport 1.9.0
+
+Module commun du passeport 1.9.0 : deux jeux neufs rejoignent la collection,
+**Le compte est bon** (thème Nombres) et **La Ruche** (thème Mots). Rien ne
+change dans le jeu.
+
 ## Version 1.3.3 — Passeport 1.8.0
 
 Module commun du passeport 1.8.0 : **Maze for Adventurers** rejoint le thème
